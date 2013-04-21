@@ -4,7 +4,7 @@
     <item
         android:id="@+id/menu_refresh_devices"
         android:icon="@drawable/ic_menu_refresh"
-        android:showAsAction="always"
+        android:showAsAction="ifRoom"
         android:title="@string/menu_refresh_devices"
         android:titleCondensed="@string/menu_refresh_devices_condensed"/>
 

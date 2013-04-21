@@ -59,6 +59,7 @@ public class DriveListActivity extends FragmentActivity implements
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflator = getMenuInflater();
         inflator.inflate(R.menu.device_list, menu);
+        inflator.inflate(R.menu.settings, menu);
         return true;
     }
 

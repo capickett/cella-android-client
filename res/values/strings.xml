@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Titles -->
+    
     <string name="app_name">Cella Secure</string>
-    <string name="title_drive_detail">Drive Detail</string>
+    <string name="title_drive_list">Devices</string>
+    <string name="title_drive_detail">Details</string>
+
+    <!-- Menus -->
+
     <string name="menu_refresh_devices">Refresh Drives</string>
     <string name="menu_refresh_devices_condensed">Refresh</string>
     <string name="menu_settings">Settings</string>

@@ -72,8 +72,8 @@ public class DriveListFragment extends ListFragment {
 
         // TODO: replace with a real list adapter.
         setListAdapter(new ArrayAdapter<DummyContent.DummyItem>(getActivity(),
-                android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1, DummyContent.ITEMS));
+                R.layout.list_drive_item,
+                R.id.list_drive_name, DummyContent.ITEMS));
     }
 
     @Override

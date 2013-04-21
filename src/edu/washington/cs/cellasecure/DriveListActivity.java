@@ -3,6 +3,8 @@ package edu.washington.cs.cellasecure;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.view.Menu;
+import android.view.MenuInflater;
 
 /**
  * An activity representing a list of Drives. This activity has different
@@ -48,6 +50,18 @@ public class DriveListActivity extends FragmentActivity implements
 
         // TODO: If exposing deep links into your app, handle intents here.
     }
+    
+
+    /* (non-Javadoc)
+     * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflator = getMenuInflater();
+        inflator.inflate(R.menu.device_list, menu);
+        return true;
+    }
+
 
     /**
      * Callback method from {@link DriveListFragment.Callbacks} indicating that

@@ -86,6 +86,9 @@ public class DriveListFragment extends ListFragment {
             setActivatedPosition(savedInstanceState
                     .getInt(STATE_ACTIVATED_POSITION));
         }
+        
+        getListView().setDivider(null);
+        getListView().setDividerHeight(0);
     }
 
     @Override

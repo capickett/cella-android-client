@@ -6,7 +6,7 @@
     
     <ImageView 
         android:id="@+id/list_drive_status"
-        android:src="@android:drawable/ic_secure"
+        android:src="@android:drawable/ic_lock_lock"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:gravity="center"

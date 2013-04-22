@@ -4,7 +4,7 @@
     android:name="edu.washington.cs.cellasecure.DriveListFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginLeft="32dp"
-    android:layout_marginRight="32dp"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
     tools:context=".DriveListActivity"
     tools:layout="@android:layout/list_content" />

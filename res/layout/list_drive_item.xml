@@ -17,10 +17,19 @@
 
     <TextView
         android:id="@+id/list_drive_name"
-        android:layout_width="wrap_content"
+        android:layout_width="0dip"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:gravity="center_vertical"
         android:minHeight="?android:attr/listPreferredItemHeightSmall"
-        android:textAppearance="?android:attr/textAppearanceListItemSmall" />
+        android:textAppearance="?android:attr/textAppearanceListItemSmall"
+        android:textSize="22sp" />
+
+    <ImageView
+        android:id="@+id/list_drive_menu"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:paddingLeft="8dp"
+        android:src="@drawable/dropdown_ic_arrow_normal_holo_light" />
 
 </LinearLayout>

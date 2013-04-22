@@ -4,9 +4,10 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.view.View;
+import android.webkit.WebView.FindListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
+import android.widget.Spinner;
 import edu.washington.cs.cellasecure.dummy.DummyContent;
 
 /**
@@ -87,8 +88,8 @@ public class DriveListFragment extends ListFragment {
                     .getInt(STATE_ACTIVATED_POSITION));
         }
         
-        getListView().setDivider(null);
-        getListView().setDividerHeight(0);
+//        getListView().setDivider(null);
+//        getListView().setDividerHeight(0);
     }
 
     @Override

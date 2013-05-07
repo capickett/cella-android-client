@@ -8,30 +8,34 @@ import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 
-
 /**
  * 
  * requires BLUETOOTH and BLUETOOTH_ADMIN
  * 
- * @author palarson
- *
+ * @author CellaSecure
  */
-public class BluetoothUtility implements BluetoothUtilityInterface {
+public class BluetoothUtility implements BluetoothUtilityInterface, ConnectionThread.Callbacks {
 
 	private static final UUID mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 	
-	private BluetoothAdapter 		mBluetoothAdapter;		// Connection point for bluetooth devices
+	private BluetoothAdapter 		mBluetoothAdapter;		// Connection point for Bluetooth devices
+	private BluetoothSocket			mBluetoothSocket;       // Socket to communicate with Bluetooth device
 	private BroadcastReceiver 		mBroadcastReceiver;		// Broadcast receiver to listen for various callbacks
 	private List<BluetoothDevice> 	mBondedDevices; 		// List of bonded devices
-	private List<BluetoothDevice>	mDiscoveredDevices;		// List of found devices that have not been paired	
-	private Map<BluetoothDevice, DeviceConfiguration> mConfigMap; // Mappings from each connected bluetooth 
+	private List<BluetoothDevice>	mDiscoveredDevices;		// List of found devices that have not been paired
+	private Map<BluetoothDevice, DeviceConfiguration> mConfigMap; // Mappings from each connected Bluetooth 
 													 			  // device to its configuration
 	
+	/*
+	 * Constructs a new BluetoothUtility for managing 
+	 * communication between Android and Bluetooth Devices
+	 */
 	public BluetoothUtility(Context context) {
 		mBluetoothAdapter  = BluetoothAdapter.getDefaultAdapter();
 		mDiscoveredDevices = new ArrayList<BluetoothDevice>();
@@ -54,6 +58,8 @@ public class BluetoothUtility implements BluetoothUtilityInterface {
 	
 	@Override
 	public void scanForDevices() {
+		if (mBluetoothAdapter.isDiscovering()) 
+			mBluetoothAdapter.cancelDiscovery();
 		mBluetoothAdapter.startDiscovery();
 	}
 	
@@ -78,19 +84,15 @@ public class BluetoothUtility implements BluetoothUtilityInterface {
 	public boolean pairDevice(BluetoothDevice device) {
 		switch (device.getBondState()) {
 		case (BluetoothDevice.BOND_BONDED):
-			// already bonded
 			return true;
-//		case (BluetoothDevice.BOND_BONDING):
-//			// currently bonding
-//		 	return false;
 		case (BluetoothDevice.BOND_NONE):
 			try {
 				return (Boolean) (device.getClass()).getMethod("createBond").invoke(device);
 			} catch (Exception e) {
 				return false;
 			}
+		// case (BluetoothDevice.BOND_BONDING): // taken care of by default
 		default:
-			// Unrecognized state
 			return false;
 		}
 	}
@@ -99,33 +101,29 @@ public class BluetoothUtility implements BluetoothUtilityInterface {
 	public boolean unpairDevice(BluetoothDevice device) {
 		switch (device.getBondState()) {
 		case (BluetoothDevice.BOND_BONDED):
-			// already bonded
 			try {
 				return (Boolean) (device.getClass()).getMethod("removeBond").invoke(device);
 			} catch (Exception e) {
 				return false;
 			}
-//		case (BluetoothDevice.BOND_BONDING):
-//			// currently bonding
-//		 	return false;
 		case (BluetoothDevice.BOND_NONE):
 			return true;
+		// case (BluetoothDevice.BOND_BONDING): // taken care of by default
 		default:
-			// Unrecognized state
 			return false;
-		}		
+		}
+
 	}
 
 	@Override
 	public void connect(BluetoothDevice device) {
-		// TODO Auto-generated method stub
-		
+		new Thread(new ConnectionThread(device, mBluetoothAdapter, mUUID, this)).start();
 	}
 
 	@Override
 	public void disconnect() {
-		// TODO Auto-generated method stub
-		
+		if (mBluetoothSocket != null)
+			try { mBluetoothSocket.close(); } catch (Exception e) {}
 	}
 
 	@Override
@@ -148,5 +146,10 @@ public class BluetoothUtility implements BluetoothUtilityInterface {
 	public void setConfiguration(BluetoothDevice device, DeviceConfiguration config) {
 		if (config == null) config = new DeviceConfiguration();
 		mConfigMap.put(device, config);
+	}
+	
+	@Override
+	public void onConnected(BluetoothSocket socket) {
+		mBluetoothSocket = socket;
 	}
 }

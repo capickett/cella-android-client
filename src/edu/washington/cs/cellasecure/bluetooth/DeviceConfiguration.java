@@ -5,6 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 
+ * 
+ * @author CellaSecure
+ */
 public class DeviceConfiguration {
 	private Map<String, String> mConfigurations;	// Map from configuration names to values
 	
@@ -41,7 +46,7 @@ public class DeviceConfiguration {
 	/**
 	 * Returns a list of all field names in the current configuration
 	 * 
-	 * @return			a list of all current configuration field names
+	 * @return a list of all current configuration field names
 	 */
 	public List<String> listOptions() {
 		return new ArrayList<String>(mConfigurations.keySet());

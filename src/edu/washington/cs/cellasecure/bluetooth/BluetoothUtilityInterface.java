@@ -4,29 +4,33 @@ import java.util.List;
 
 import android.bluetooth.BluetoothDevice;
 
+/**
+ * 
+ * @author CellaSecure
+ */
 public interface BluetoothUtilityInterface {
 	
 	/**
-	 * Discover in-range Bluetooth devices, scanning for at most
-	 * 12 seconds.  
+	 * Start an asynchronous discovery for in-range Bluetooth devices, 
+	 * scanning for at most 12 seconds.  
 	 */
 	public void scanForDevices();
 	
 	/**
 	 * Accessor for both bonded and discovered devices
-	 * @return 			a list of all discovered and bonded devices
+	 * @return a list of all discovered and bonded devices
 	 */
 	public List<BluetoothDevice> getAllDevices();
 	
 	/**
 	 * Accessor for bonded devices
-	 * @return 			a list of all bonded devices
+	 * @return a list of all bonded devices
 	 */
 	public List<BluetoothDevice> getBondedDevices();
 	
 	/**
 	 * Accessor for discovered devices
-	 * @return 			a list of all discovered devices
+	 * @return a list of all discovered devices
 	 */
 	public List<BluetoothDevice> getDiscoveredDevices();
 	
@@ -54,6 +58,8 @@ public interface BluetoothUtilityInterface {
 	
 	/**
 	 * Gracefully end connection with a Bluetooth device
+	 * 
+	 * @param socket	the socket to terminate
 	 */
 	public void disconnect();
 	
@@ -70,6 +76,7 @@ public interface BluetoothUtilityInterface {
 	 * 
 	 * @param device    the device whose configuration will be updated
 	 * @param config	the new configuration object for the given device
+	 * 
 	 * @throws IllegalArgumentException		if the device is not found
 	 */
 	public void setConfiguration(BluetoothDevice device, DeviceConfiguration config);

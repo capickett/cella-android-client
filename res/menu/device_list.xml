@@ -6,6 +6,11 @@
         android:icon="@drawable/ic_menu_refresh"
         android:showAsAction="ifRoom"
         android:title="@string/menu_refresh_devices"
-        android:titleCondensed="@string/menu_refresh_devices_condensed"/>
+        android:titleCondensed="@string/menu_refresh_devices_condensed" />
+
+    <item
+        android:id="@+id/menu_connect_drive"
+        android:showAsAction="never"
+        android:title="@string/menu_connect_drive" />
 
 </menu>

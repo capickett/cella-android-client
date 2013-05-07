@@ -2,11 +2,22 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
-    
-    <TextView 
+    android:orientation="vertical" > <!-- FIXME: Remove when finished -->
+
+    <TextView
+        android:id="@+id/device_manage_lock_status"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="TEST" />
+        android:layout_height="wrap_content"
+        android:background="@android:color/holo_red_dark"
+        android:gravity="center"
+        android:padding="8dp"
+        android:text="@string/device_manage_lock_status_default"
+        android:textAppearance="?android:attr/textAppearanceMediumInverse" />
+
+    <fragment
+        android:id="@+id/fragment1"
+        android:name="edu.washington.cs.cellasecure.DriveUnlockFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </LinearLayout>

@@ -8,25 +8,42 @@ public interface BluetoothUtilityInterface {
 	
 	/**
 	 * Discover in-range Bluetooth devices, scanning for at most
-	 * 12 seconds.
-	 *  
-	 * @return a list of discovered Bluetooth devices
+	 * 12 seconds.  
 	 */
-	public List<BluetoothDevice> scanForDevices();
+	public void scanForDevices();
+	
+	/**
+	 * Accessor for both bonded and discovered devices
+	 * @return 			a list of all discovered and bonded devices
+	 */
+	public List<BluetoothDevice> getAllDevices();
+	
+	/**
+	 * Accessor for bonded devices
+	 * @return 			a list of all bonded devices
+	 */
+	public List<BluetoothDevice> getBondedDevices();
+	
+	/**
+	 * Accessor for discovered devices
+	 * @return 			a list of all discovered devices
+	 */
+	public List<BluetoothDevice> getDiscoveredDevices();
 	
 	/**
 	 * Create a bond with the given device 
 	 * 
 	 * @param device 	the Bluetooth device to bond with
+	 * @return 			true if already paired or on successful pairing, false otherwise
 	 */
-	public void pairDevice(BluetoothDevice device);
+	public boolean pairDevice(BluetoothDevice device);
 	
 	/**
 	 * Erase the bond with the given device
 	 * 
 	 * @param device	the Bluetooth device to unpair from
 	 */
-	public void unpairDevice(BluetoothDevice device);
+	public boolean unpairDevice(BluetoothDevice device);
 	
 	/**
 	 * Attempt to establish a connection with the given device
@@ -44,11 +61,21 @@ public interface BluetoothUtilityInterface {
 	 * Return the configuration of the given Bluetooth device
 	 * 
 	 * @param device 	the device whose configuration to return
-	 * @return 			the configuration for the device
+	 * @return 			the configuration for the device if found, else null
 	 */
 	public DeviceConfiguration getConfiguration(BluetoothDevice device);
 	
 	/**
+	 * Sets the configuration to the given device from a preexisting configuration;
+	 * 
+	 * @param device    the device whose configuration will be updated
+	 * @param config	the new configuration object for the given device
+	 * @throws IllegalArgumentException		if the device is not found
+	 */
+	public void setConfiguration(BluetoothDevice device, DeviceConfiguration config);
+	
+	/**
+	 * Sets the given fieldName to the given value for the given device
 	 * 
 	 * @param device	the device whose configuration is to be set
 	 * @param fieldName	the name of the configuration field to be modified

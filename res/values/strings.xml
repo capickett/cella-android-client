@@ -20,5 +20,6 @@
     <string name="drive_setup_multi_factor_label">Multifactor authentication</string>
     <string name="drive_setup_authentication_label">Authentication options</string>
     <string name="device_manage_lock_status_default">LOCKED</string>
+    <string name="drive_unlock_hint">Enter password to unlock</string>
 
 </resources>

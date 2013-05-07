@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" > <!-- FIXME: Remove when finished -->
 
     <TextView
-        android:id="@+id/device_manage_lock_status"
+        android:id="@+id/drive_manage_lock_status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@android:color/holo_red_dark"
@@ -15,9 +16,12 @@
         android:textAppearance="?android:attr/textAppearanceMediumInverse" />
 
     <fragment
-        android:id="@+id/fragment1"
+        android:id="@+id/drive_manage_setup_fragment"
         android:name="edu.washington.cs.cellasecure.DriveUnlockFragment"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        tools:layout="@layout/fragment_drive_setup" />
 
 </LinearLayout>

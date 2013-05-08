@@ -14,12 +14,14 @@
     <string name="menu_refresh_devices_condensed">Refresh</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_connect_drive">Add a device</string>
-    <string name="drive_connect_list_title">Please select your drive</string>
+    <string name="drive_connect_list_title">Which device would you like to add?</string>
     <string name="drive_setup_name_hint">Unique device name</string>
     <string name="drive_setup_encryption_label">Hardware encryption</string>
     <string name="drive_setup_multi_factor_label">Multifactor authentication</string>
     <string name="drive_setup_authentication_label">Authentication options</string>
     <string name="device_manage_lock_status_default">LOCKED</string>
     <string name="drive_unlock_hint">Enter password to unlock</string>
+    <string name="drive_manage_no_devices_label">You have no devices!</string>
+    <string name="drive_manage_new_device_hint">Would you like to add one?</string>
 
 </resources>

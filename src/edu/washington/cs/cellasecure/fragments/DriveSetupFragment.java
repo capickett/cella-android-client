@@ -7,7 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import edu.washington.cs.cellasecure.R;
 
-public class DriveManageFragment extends Fragment {
+public class DriveSetupFragment extends Fragment {
 
     /*
      * (non-Javadoc)
@@ -18,7 +18,8 @@ public class DriveManageFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_drive_manage, container, false);
+        return inflater
+                .inflate(R.layout.fragment_drive_setup, container, false);
     }
 
 }

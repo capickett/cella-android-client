@@ -17,7 +17,7 @@
 
     <fragment
         android:id="@+id/drive_manage_setup_fragment"
-        android:name="edu.washington.cs.cellasecure.DriveUnlockFragment"
+        android:name="edu.washington.cs.cellasecure.fragments.DriveSetupFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginLeft="8dp"

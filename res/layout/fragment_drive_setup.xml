@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginLeft="8dp"
@@ -39,12 +40,11 @@
         android:layout_marginBottom="8dp"
         android:text="@string/drive_setup_authentication_label" />
 
-    <ExpandableListView
-        android:id="@+id/drive_setup_auth_config"
+    <fragment
+        android:id="@+id/fragment1"
+        android:name="edu.washington.cs.cellasecure.fragments.DriveAuthPreferenceFragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp" >
-
-    </ExpandableListView>
+        tools:layout="@android:layout/expandable_list_content" />
 
 </LinearLayout>

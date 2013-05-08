@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ListView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/drive_connect_list"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginLeft="8dp"
-    android:layout_marginRight="8dp" >
+    android:orientation="vertical" >
 
-</ListView>
+    <TextView
+        android:background="@android:color/darker_gray"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:gravity="center"
+        android:text="@string/drive_connect_list_title"
+        android:textAppearance="?android:attr/textAppearanceMediumInverse" />
+
+    <ListView
+        android:id="@+id/drive_connect_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp" >
+    </ListView>
+
+</LinearLayout>

@@ -31,23 +31,23 @@ import android.bluetooth.BluetoothSocket;
  */
 public class ConnectionThread implements Runnable {
 	
-	interface Callbacks {
-		public void onConnected(BluetoothSocket socket);
+	interface ConnectionCallbacks {
+		public void onConnected(Connection connection);
 	}	
 	
-	private BluetoothAdapter	mAdapter;	// Bluetooth adapter for managing all communication
-	private BluetoothDevice 	mDevice;	// Bluetooth device to connect to
-	private Callbacks			mCallback;	// Callback to return connected socket
-	private UUID				mUUID;		// UUID for connecting to Bluetooth device
+	private BluetoothAdapter	mAdapter;		// Bluetooth adapter for managing all communication
+	private BluetoothDevice 	mDevice;		// Bluetooth device to connect to
+	private ConnectionCallbacks	mLocalCallback;	// Callback to return connected socket
+	private UUID				mUUID;			// UUID for connecting to Bluetooth device
 
 	public ConnectionThread(BluetoothDevice device, 
 							BluetoothAdapter adapter, 
 							UUID uuid,
-							Callbacks callback) {
-		mDevice   = device;
-		mAdapter  = adapter;
-		mCallback = callback;
-		mUUID     = uuid;
+							ConnectionCallbacks localCallback) {
+		mDevice         = device;
+		mAdapter        = adapter;
+		mLocalCallback  = localCallback;
+		mUUID           = uuid;
 	}
 	
 	@Override
@@ -56,8 +56,9 @@ public class ConnectionThread implements Runnable {
 		try {
 			BluetoothSocket socket = mDevice.createRfcommSocketToServiceRecord(mUUID);
 			socket.connect();
-			mCallback.onConnected(socket);
+			mLocalCallback.onConnected(new Connection(socket));
 		} catch (IOException e) {
+			// e.printStackTrace();
 			return;
 		}
 	}

@@ -21,16 +21,32 @@ import java.util.List;
 import android.bluetooth.BluetoothDevice;
 
 /**
+ * TODO: Interface comment
  * 
  * @author CellaSecure
  */
 public interface BluetoothUtilityInterface {
 	
 	/**
+	 * TODO: Interface comment
+	 * 
+	 * @author CellaSecure
+	 */
+	public interface BluetoothCallbacks {
+		public void onConnected(Connection connection);
+		public void onDiscovery(List<BluetoothDevice> bluetoothDevices);
+	}
+	
+	/**
 	 * Start an asynchronous discovery for in-range Bluetooth devices, 
 	 * scanning for at most 12 seconds.  
 	 */
 	public void scanForDevices();
+	
+	/**
+	 * @return true if bluetooth adapter is discovering, else false
+	 */
+	public boolean isScanning();
 	
 	/**
 	 * Accessor for both bonded and discovered devices
@@ -71,38 +87,4 @@ public interface BluetoothUtilityInterface {
 	 * @param device	the Bluetooth device to connect to
 	 */
 	public void connect(BluetoothDevice device);
-	
-	/**
-	 * Gracefully end connection with a Bluetooth device
-	 * 
-	 * @param socket	the socket to terminate
-	 */
-	public void disconnect();
-	
-	/**
-	 * Return the configuration of the given Bluetooth device
-	 * 
-	 * @param device 	the device whose configuration to return
-	 * @return 			the configuration for the device if found, else null
-	 */
-	public DeviceConfiguration getConfiguration(BluetoothDevice device);
-	
-	/**
-	 * Sets the configuration to the given device from a preexisting configuration;
-	 * 
-	 * @param device    the device whose configuration will be updated
-	 * @param config	the new configuration object for the given device
-	 * 
-	 * @throws IllegalArgumentException		if the device is not found
-	 */
-	public void setConfiguration(BluetoothDevice device, DeviceConfiguration config);
-	
-	/**
-	 * Sets the given fieldName to the given value for the given device
-	 * 
-	 * @param device	the device whose configuration is to be set
-	 * @param fieldName	the name of the configuration field to be modified
-	 * @param value		the new value for fieldName in the configuration
-	 */
-	public void setConfiguration(BluetoothDevice device, String fieldName, String value);
 }

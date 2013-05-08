@@ -23,6 +23,12 @@ import java.util.concurrent.Executors;
 
 import android.bluetooth.BluetoothSocket;
 
+/**
+ * Utility for managing and executing operations 
+ * over a connection to a Bluetooth device
+ * 
+ * @author CellaSecure
+ */
 public class Connection implements ConnectionInterface {
 	
 	private DeviceConfiguration 	mConfig;
@@ -31,7 +37,17 @@ public class Connection implements ConnectionInterface {
 	private OutputStream        	mOutputStream;
 	private ExecutorService     	mPool; 
 	
+	/**
+	 * Construct a new connection over the given socket
+	 * The socket must be established
+	 * 
+	 * @param  socket	the BluetoothSocket which the device is connected to
+	 * @throws IllegalArgumentException if socket is null
+	 */
 	public Connection(BluetoothSocket socket) {
+		if (socket == null) {
+			throw new IllegalArgumentException("Socket must be established");
+		}
 		mBluetoothSocket = socket;
 		mConfig			 = initConfiguration();
 		mPool 			 = Executors.newSingleThreadExecutor();
@@ -49,6 +65,10 @@ public class Connection implements ConnectionInterface {
 		mOutputStream = os;
 	}
 	
+	/*
+	 * Initialize the configuration by requesting information
+	 * over the Bluetooth socket
+	 */
 	private DeviceConfiguration initConfiguration() {
 		// TODO:
 		DeviceConfiguration config = new DeviceConfiguration();
@@ -95,7 +115,7 @@ public class Connection implements ConnectionInterface {
 	}
 	
 	/*
-	 * 
+	 * Runnable thread for asynchronously reading over the socket
 	 */
 	private class ReadRunnable implements Runnable {
 		private byte[] mBuffer;
@@ -110,7 +130,7 @@ public class Connection implements ConnectionInterface {
 	}
 	
 	/*
-	 * 
+	 * Runnable thread for asynchronously writing over the socket 
 	 */
 	private class WriteRunnable implements Runnable {
 		private byte[] mMessage;

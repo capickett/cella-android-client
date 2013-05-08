@@ -16,6 +16,12 @@
 
 package edu.washington.cs.cellasecure.bluetooth;
 
+/**
+ * Interface for connection utility that manages and executes operations 
+ * over a connection to a Bluetooth device
+ * 
+ * @author CellaSecure
+ */
 public interface ConnectionInterface {
 	/**
 	 * Gracefully end connection with a Bluetooth device
@@ -25,14 +31,16 @@ public interface ConnectionInterface {
 	public void disconnect();
 	
 	/**
+	 * Read information from the socket
 	 * 
-	 * @param buf
+	 * @param buf	the buffer to read into
 	 */
 	public void read(byte[] buf);
 	
 	/**
+	 * Write information to the socket
 	 * 
-	 * @param msg
+	 * @param msg	the message to write over the socket
 	 */
 	public void write(byte[] msg);
 	

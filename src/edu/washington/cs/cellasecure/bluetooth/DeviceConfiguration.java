@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 
+ * Utility to manage configurations for each CellaSecure device
+ * that this mobile application is connected to
  * 
  * @author CellaSecure
  */

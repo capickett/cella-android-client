@@ -28,7 +28,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 
 /**
- * TODO: Class comment
+ * Bluetooth Utility library for connecting Android mobile applications
+ * with Bluetooth devices.
  * 
  * requires BLUETOOTH and BLUETOOTH_ADMIN
  * 
@@ -42,11 +43,13 @@ public class BluetoothUtility implements BluetoothUtilityInterface, ConnectionTh
 	private BroadcastReceiver 		mBroadcastReceiver;		// Broadcast receiver to listen for various callbacks
 	private List<BluetoothDevice> 	mBondedDevices; 		// List of bonded devices
 	private List<BluetoothDevice>	mDiscoveredDevices;		// List of found devices that have not been paired
-	private BluetoothCallbacks		mCallbacks;				//
+	private BluetoothCallbacks		mCallbacks;				// Asynchronous client callbacks
 	
-	/*
-	 * Constructs a new BluetoothUtility for managing 
-	 * communication between Android and Bluetooth Devices
+	/**
+	 * Constructs a new Bluetooth utility to manage devices
+	 * 
+	 * @param context	Context for mobile application
+	 * @param callbacks Client callbacks for receiving notifications @see BluetoothCallbacks
 	 */
 	public BluetoothUtility(Context context, BluetoothCallbacks callbacks) {
 		mCallbacks = callbacks;
@@ -130,7 +133,6 @@ public class BluetoothUtility implements BluetoothUtilityInterface, ConnectionTh
 		default:
 			return false;
 		}
-
 	}
 
 	@Override

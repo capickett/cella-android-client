@@ -21,19 +21,32 @@ import java.util.List;
 import android.bluetooth.BluetoothDevice;
 
 /**
- * TODO: Interface comment
+ * Interface for Bluetooth Utility used to establish and manage interactions between Android
+ * mobile devices and Bluetooth devices
  * 
  * @author CellaSecure
  */
 public interface BluetoothUtilityInterface {
 	
 	/**
-	 * TODO: Interface comment
+	 * Callback interface to be implemented by the client.  Used to deliver results
+	 * of asynchronous methods
 	 * 
 	 * @author CellaSecure
 	 */
 	public interface BluetoothCallbacks {
+		/**
+		 * Callback to return an established connection
+		 * 
+		 * @param connection		the connection to the Bluetooth device
+		 */
 		public void onConnected(Connection connection);
+		
+		/**
+		 * Callback to notify a client when a device is found
+		 * 
+		 * @param bluetoothDevices	the list of discovered Bluetooth devices
+		 */
 		public void onDiscovery(List<BluetoothDevice> bluetoothDevices);
 	}
 	

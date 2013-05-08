@@ -31,15 +31,29 @@ import android.bluetooth.BluetoothSocket;
  */
 public class ConnectionThread implements Runnable {
 	
+	/**
+	 * Interface for callbacks to be implemented by the client
+	 * 
+	 * @author CellaSecure
+	 */
 	interface ConnectionCallbacks {
+		/**
+		 * Callback to return an established connection to a
+		 * Bluetooth device
+		 * 
+		 * @param connection	the established connection
+		 */
 		public void onConnected(Connection connection);
 	}	
 	
 	private BluetoothAdapter	mAdapter;		// Bluetooth adapter for managing all communication
 	private BluetoothDevice 	mDevice;		// Bluetooth device to connect to
-	private ConnectionCallbacks	mLocalCallback;	// Callback to return connected socket
+	private ConnectionCallbacks	mLocalCallback;	// Callback to return connected socket to Bluetooth utility
 	private UUID				mUUID;			// UUID for connecting to Bluetooth device
 
+	/*
+	 * Initialize necessary information for a new connection thread
+	 */
 	public ConnectionThread(BluetoothDevice device, 
 							BluetoothAdapter adapter, 
 							UUID uuid,

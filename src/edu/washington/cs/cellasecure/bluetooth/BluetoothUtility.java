@@ -43,7 +43,7 @@ public class BluetoothUtility implements BluetoothUtilityInterface, ConnectionTh
     private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
     private List<BluetoothDevice> mBondedDevices;       // List of bonded devices
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
-    private BluetoothListener    mCallbacks;           // Asynchronous client callbacks
+    private BluetoothListener     mCallbacks;           // Asynchronous client callbacks
 
     /**
      * Constructs a new Bluetooth utility to manage devices
@@ -56,6 +56,8 @@ public class BluetoothUtility implements BluetoothUtilityInterface, ConnectionTh
     public BluetoothUtility(Context context, BluetoothListener callbacks) {
         mCallbacks = callbacks;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null)
+            throw new IllegalStateException("Bluetooth not supported");
         mDiscoveredDevices = new ArrayList<BluetoothDevice>();
         mBondedDevices = new ArrayList<BluetoothDevice>(mBluetoothAdapter.getBondedDevices());
 
@@ -80,6 +82,16 @@ public class BluetoothUtility implements BluetoothUtilityInterface, ConnectionTh
         mBluetoothAdapter.startDiscovery();
     }
 
+    @Override
+    public boolean isEnabled() {
+        return mBluetoothAdapter.isEnabled();
+    }
+    
+    @Override
+    public Intent enableBluetooth() {
+        return new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+    }
+    
     @Override
     public boolean isScanning() {
         return mBluetoothAdapter.isDiscovering();
@@ -138,11 +150,16 @@ public class BluetoothUtility implements BluetoothUtilityInterface, ConnectionTh
 
     @Override
     public void connect(BluetoothDevice device) {
+        ensureConnected();
         new Thread(new ConnectionThread(device, mBluetoothAdapter, mUUID, this)).start();
     }
 
     @Override
     public void onConnected(Connection connection) {
         mCallbacks.onConnected(connection);
+    }
+    
+    private void ensureConnected() {
+        throw new IllegalStateException("Bluetooth must be enabled");
     }
 }

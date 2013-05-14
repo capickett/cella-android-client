@@ -19,6 +19,7 @@ package edu.washington.cs.cellasecure.bluetooth;
 import java.util.List;
 
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 
 /**
  * Interface for Bluetooth Utility used to establish and manage interactions
@@ -59,7 +60,24 @@ public interface BluetoothUtilityInterface {
     public void scanForDevices();
 
     /**
-     * @return true if bluetooth adapter is discovering, else false
+     * @return true if Bluetooth is enabled on the mobile device
+     */
+    public boolean isEnabled();
+    
+    /**
+     * Returns an intent to be used by the Activity using this library
+     * Ex.
+     *      BluetoothUtility util = new BluetoothUtility(this);
+     *      if (!util.isEnabled()) 
+     *          startActivityForResult(enableBluetooth(), REQUEST_ENABLE_BT);
+     *
+     * @return an Intent to be used in "startActivityForResult" to request
+     * Bluetooth to be enabled
+     */
+    public Intent enableBluetooth();
+    
+    /**
+     * @return true if Bluetooth adapter is discovering, else false
      */
     public boolean isScanning();
 

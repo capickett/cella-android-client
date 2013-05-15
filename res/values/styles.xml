@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
         Base application theme, dependent on API level. This theme is replaced
@@ -15,6 +15,14 @@
     <!-- Application theme. -->
     <style name="AppTheme" parent="AppBaseTheme">
         <!-- All customizations that are NOT specific to a particular API-level can go here. -->
+    </style>
+
+    <!-- Lock indicator style for the banner that shows when managing a lockable device. -->
+    <style name="LockedIndicatorStyle" parent="@android:style/TextAppearance.Medium.Inverse">
+        <item name="android:background">@android:color/holo_red_dark</item>
+        <item name="android:gravity">center</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:text">@string/device_manage_lock_status_locked</item>
     </style>
 
 </resources>

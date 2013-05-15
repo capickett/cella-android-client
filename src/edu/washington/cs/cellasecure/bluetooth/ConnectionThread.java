@@ -33,7 +33,7 @@ import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListene
 public class ConnectionThread implements Runnable {
     private BluetoothAdapter    mAdapter;      // Bluetooth adapter for managing all communication
     private BluetoothDevice     mDevice;       // Bluetooth device to connect to
-    private BluetoothListener  mListener; // Callback to return connected socket to Bluetooth utility
+    private BluetoothListener   mListener;     // Callback to return connected socket to Bluetooth utility
     private UUID                mUUID;         // UUID for connecting to Bluetooth device
 
     /*

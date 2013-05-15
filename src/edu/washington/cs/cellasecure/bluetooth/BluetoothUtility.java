@@ -39,8 +39,10 @@ public class BluetoothUtility {
 
     private static final UUID     mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
+    
     private BluetoothAdapter      mBluetoothAdapter;    // Connection point for Bluetooth devices
     private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
+    private Context               mContext;             // Context from mobile app
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
     private BluetoothListener     mListener;            // Asynchronous client callbacks
 
@@ -53,6 +55,7 @@ public class BluetoothUtility {
      *            Client callbacks for receiving notifications
      */
     public BluetoothUtility(Context context, BluetoothListener callbacks) {
+        mContext  = context;
         mListener = callbacks;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null)
@@ -71,7 +74,7 @@ public class BluetoothUtility {
             }
         };
         IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        context.registerReceiver(mBroadcastReceiver, action_found_filter);
+        mContext.registerReceiver(mBroadcastReceiver, action_found_filter);
     }
 
     /**
@@ -208,6 +211,15 @@ public class BluetoothUtility {
         if (!mBluetoothAdapter.isEnabled()) 
             throw new IllegalStateException("Bluetooth must be enabled");
         new Thread(new ConnectionThread(device, mBluetoothAdapter, mUUID, mListener)).start();
+    }
+    
+    public void onPause() {
+        mContext.unregisterReceiver(mBroadcastReceiver);
+    }
+    
+    public void onResume() {
+        IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        mContext.registerReceiver(mBroadcastReceiver, action_found_filter);
     }
     
     /**

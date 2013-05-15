@@ -3,10 +3,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <fragment
-        android:id="@+id/drive_manage_no_devices_fragment"
-        android:name="edu.washington.cs.cellasecure.fragments.DriveNoDevicesFragment"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent" />
+    <ProgressBar
+        android:id="@+id/drive_loading_progress"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center" />
 
 </LinearLayout>

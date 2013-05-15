@@ -40,10 +40,8 @@ public class DriveNoDevicesFragment extends Fragment implements OnClickListener 
         super.onActivityCreated(savedInstanceState);
 
         Activity activity = getActivity();
-        mNewDevicePrompt = (Button) activity
-                .findViewById(R.id.drive_manage_new_device_hint);
-        mNewDeviceView = activity
-                .findViewById(R.id.drive_manage_no_devices_fragment);
+        mNewDevicePrompt = (Button) activity.findViewById(R.id.drive_manage_new_device_hint);
+        mNewDeviceView = activity.findViewById(R.id.drive_manage_fragment_container);
 
         mNewDevicePrompt.setOnClickListener(this);
         mNewDeviceView.setOnClickListener(this);

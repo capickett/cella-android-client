@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/fragment_drive_connect"
-    android:name="edu.washington.cs.cellasecure.fragments.DriveConnectFragment"
+    android:id="@+id/drive_connect_fragment_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".DriveConnectActivity"
-    tools:layout="@layout/fragment_drive_connect_list" />
+    android:orientation="vertical" >
 
+    <fragment
+        android:id="@+id/fragment_drive_connect"
+        android:name="edu.washington.cs.cellasecure.fragments.DriveConnectFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".DriveConnectActivity"
+        tools:layout="@layout/fragment_drive_connect_list" />
+
+</LinearLayout>

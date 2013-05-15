@@ -8,6 +8,9 @@
         android:minSdkVersion="14"
         android:targetSdkVersion="17" />
 
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -15,7 +18,7 @@
         android:theme="@style/AppTheme" >
         <activity
             android:name="edu.washington.cs.cellasecure.DriveManageActivity"
-            android:label="@string/title_drive_list" >
+            android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

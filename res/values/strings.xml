@@ -2,7 +2,7 @@
 <resources>
 
     <!-- Titles -->
-    
+
     <string name="app_name">Cella Secure</string>
     <string name="title_drive_list">Devices</string>
     <string name="title_drive_detail">Details</string>
@@ -19,9 +19,11 @@
     <string name="drive_setup_encryption_label">Hardware encryption</string>
     <string name="drive_setup_multi_factor_label">Multifactor authentication</string>
     <string name="drive_setup_authentication_label">Authentication options</string>
-    <string name="device_manage_lock_status_default">LOCKED</string>
+    <string name="device_manage_lock_status_locked">LOCKED</string>
+    <string name="device_manage_lock_status_unlocked">UNLOCKED</string>
     <string name="drive_unlock_hint">Enter password to unlock</string>
     <string name="drive_manage_no_devices_label">You have no devices!</string>
     <string name="drive_manage_new_device_hint">Would you like to add one?</string>
+    <string name="shared_preference_key">edu.washington.cs.cellasecure.PREFERENCE_FILE_KEY</string>
 
 </resources>

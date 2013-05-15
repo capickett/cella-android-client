@@ -3,17 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" > <!-- FIXME: Remove when finished -->
+    android:orientation="vertical" >
 
     <TextView
         android:id="@+id/drive_manage_lock_status"
+        style="@style/LockedIndicatorStyle"
+        android:textIsSelectable="false"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@android:color/holo_red_dark"
-        android:gravity="center"
-        android:padding="8dp"
-        android:text="@string/device_manage_lock_status_default"
-        android:textAppearance="?android:attr/textAppearanceMediumInverse" />
+        android:layout_height="wrap_content" />
 
     <fragment
         android:id="@+id/drive_manage_setup_fragment"

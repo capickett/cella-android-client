@@ -1,7 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Titles -->
+
     <string name="app_name">Cella Secure</string>
-    <string name="title_drive_detail">Drive Detail</string>
+    <string name="title_drive_list">Devices</string>
+    <string name="title_drive_detail">Details</string>
+    <string name="title_drive_connect">New Device</string>
+
+    <!-- Menus -->
+
+    <string name="menu_refresh_devices">Refresh Drives</string>
+    <string name="menu_refresh_devices_condensed">Refresh</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_connect_drive">Add a device</string>
+    <string name="drive_connect_list_title">Which device would you like to add?</string>
+    <string name="drive_setup_name_hint">Unique device name</string>
+    <string name="drive_setup_encryption_label">Hardware encryption</string>
+    <string name="drive_setup_multi_factor_label">Multifactor authentication</string>
+    <string name="drive_setup_authentication_label">Authentication options</string>
+    <string name="device_manage_lock_status_locked">LOCKED</string>
+    <string name="device_manage_lock_status_unlocked">UNLOCKED</string>
+    <string name="drive_unlock_hint">Enter password to unlock</string>
+    <string name="drive_manage_no_devices_label">You have no devices!</string>
+    <string name="drive_manage_new_device_hint">Would you like to add one?</string>
+    <string name="shared_preference_key">edu.washington.cs.cellasecure.PREFERENCE_FILE_KEY</string>
 
 </resources>

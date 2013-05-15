@@ -16,8 +16,9 @@
 
 package edu.washington.cs.cellasecure.bluetooth;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,24 +29,52 @@ import java.util.Map;
  * @author CellaSecure
  */
 public class DeviceConfiguration {
-    private Map<String, String> mConfigurations; // Map from configuration names to values
+    private static final int STRUCT_SIZE = 1;
+    private Map<String, String> mConfigurations;
 
     /**
      * Constructs new empty configuration
      */
     public DeviceConfiguration() {
-        mConfigurations = new HashMap<String, String>();
+        mConfigurations = new LinkedHashMap<String, String>();
     }
 
     /**
      * Constructs a new configuration from the given string The string must
-     * follow the following format: OUTLINE FORMAT HERE
+     * follow the following format:
+     * 
+     *   struct config_st {
+     *     uint8_t encryption_level; // (0 - unencrypted, 1 - single factor, 2 - dual factor)
+     *   };
      * 
      * @param config Configuration string
      */
     public DeviceConfiguration(String config) {
-        // TODO:
-        mConfigurations = new HashMap<String, String>();
+        mConfigurations = new LinkedHashMap<String, String>();
+        
+        ByteBuffer buf = ByteBuffer.wrap(config.getBytes());
+        
+        // BEGIN CONFIGURATION OPTIONS
+        short encryption_level = buf.getShort();
+        mConfigurations.put("encryption_level", "" + encryption_level);
+        
+        // additional options here
+        
+        // END CONFIGURATION OPTIONS
+    }
+
+    /**
+     * Returns a byte stream containing the values for this configuration.
+     * This is to be parsed into a C structure. 
+     * @see DeviceConfiguration(String config)
+     * @return
+     */
+    public byte[] configBytes() {
+        ByteBuffer buf = ByteBuffer.allocate(STRUCT_SIZE);
+        for (String configOption : mConfigurations.keySet()) {
+            buf.put(mConfigurations.get(configOption).getBytes());
+        }
+        return buf.array();
     }
 
     /**

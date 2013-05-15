@@ -48,14 +48,14 @@ public class Connection {
 
     /**
      * Construct a new connection over the given socket The socket must be
-     * established
+     * established.  Calls onConfigurationRead with the devices configuration
+     * if successful, otherwise calls with null.
+     * @see BluetoothListener
      * 
      * @param socket
      *            the BluetoothSocket which the device is connected to
      * @throws IllegalArgumentException
      *             if socket is null
-     *         IOException
-     *             if device configuration failed to initialize
      */
     public Connection(BluetoothSocket socket, BluetoothListener listener) {
         if (socket == null) {
@@ -115,6 +115,8 @@ public class Connection {
      * @see BluetoothListener.onWriteError(String message)
      * 
      * @param passwd  The user's password which unlocks the drive
+     * TODO: callback on correct/incorrect password
+     *
      */
     public void sendPassword(String passwd) {
         sPool.execute(new WriteThread(passwd.getBytes(), PASSWD_REQUEST_BYTES, mListener));
@@ -138,7 +140,6 @@ public class Connection {
      * 
      * @param config
      *            the new configuration object for the current device
-     * TODO: callback on correct/incorrect password
      */
     public void setConfiguration(DeviceConfiguration config) {
         mConfig = config;
@@ -152,6 +153,7 @@ public class Connection {
         private final int    CONFIG_RESPONSE_LENGTH  = 1;
         
         private BluetoothListener mListener;
+        
         public InitThread(BluetoothListener cl) {
             mListener = cl;
         }

@@ -22,6 +22,7 @@ import java.util.UUID;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListener;
 
 /**
  * Connection thread for asynchronously establishing a socket with a Bluetooth
@@ -30,25 +31,9 @@ import android.bluetooth.BluetoothSocket;
  * @author CellaSecure
  */
 public class ConnectionThread implements Runnable {
-
-    /**
-     * Interface for callbacks to be implemented by the client
-     * 
-     * @author CellaSecure
-     */
-    interface ConnectionListener {
-        /**
-         * Callback to return an established connection to a Bluetooth device
-         * 
-         * @param connection
-         *            the established connection
-         */
-        public void onConnected(Connection connection);
-    }
-
     private BluetoothAdapter    mAdapter;      // Bluetooth adapter for managing all communication
     private BluetoothDevice     mDevice;       // Bluetooth device to connect to
-    private ConnectionListener  mLocalCallback; // Callback to return connected socket to Bluetooth utility
+    private BluetoothListener  mListener; // Callback to return connected socket to Bluetooth utility
     private UUID                mUUID;         // UUID for connecting to Bluetooth device
 
     /*
@@ -57,10 +42,10 @@ public class ConnectionThread implements Runnable {
     public ConnectionThread(BluetoothDevice device,
                             BluetoothAdapter adapter,
                             UUID uuid, 
-                            ConnectionListener localCallback){
+                            BluetoothListener localCallback){
         mDevice = device;
         mAdapter = adapter;
-        mLocalCallback = localCallback;
+        mListener = localCallback;
         mUUID = uuid;
     }
 
@@ -70,7 +55,7 @@ public class ConnectionThread implements Runnable {
         try {
             BluetoothSocket socket = mDevice.createRfcommSocketToServiceRecord(mUUID);
             socket.connect();
-            mLocalCallback.onConnected(new Connection(socket));
+            mListener.onConnected(new Connection(socket, mListener));
         } catch (IOException e) {
             // e.printStackTrace();
             return;

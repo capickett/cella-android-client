@@ -21,8 +21,9 @@ import android.widget.ListView;
 import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
-import edu.washington.cs.cellasecure.bluetooth.BluetoothUtilityInterface.BluetoothListener;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListener;
 import edu.washington.cs.cellasecure.bluetooth.Connection;
+import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 
 public class DriveConnectFragment extends Fragment implements
         OnItemClickListener, BluetoothListener {
@@ -136,6 +137,18 @@ public class DriveConnectFragment extends Fragment implements
         mDeviceListAdapter.clear();
         mDeviceListAdapter.addAll(mDeviceListItems);
         mDeviceListAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onConfigurationRead(DeviceConfiguration config) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void onWriteError(String error) {
+        // TODO Auto-generated method stub
+        
     }
     
     // FIXME: Needs to unregisterReceiver onPause

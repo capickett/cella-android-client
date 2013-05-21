@@ -33,10 +33,9 @@ import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListene
  * @author CellaSecure
  */
 public class Connection {
-    private static final String  WRITE_REQUEST_STRING = "W";
-    private static final byte[]  WRITE_REQUEST_BYTES  = WRITE_REQUEST_STRING.getBytes();
-    private static final String PASSWD_REQUEST_STRING = "P";
-    private static final byte[] PASSWD_REQUEST_BYTES  = PASSWD_REQUEST_STRING.getBytes();
+    private static final String CONFIG_REQUEST_CHAR = "c"; 
+    private static final String PASSWD_REQUEST_CHAR = "p";
+    private static final int    PASSWD_MAX_LENGTH   = 32;
     
     private static ExecutorService     sPool = Executors.newSingleThreadExecutor();
 
@@ -106,7 +105,9 @@ public class Connection {
      * Sends the current configuration to the device, updating the device if necessary
      */
     public void sendConfiguration() {
-        sPool.execute(new WriteThread(mConfig.configBytes(), WRITE_REQUEST_BYTES, mListener));
+        ByteBuffer message = ByteBuffer.wrap(CONFIG_REQUEST_CHAR.getBytes());
+        message.put(mConfig.configBytes());
+        sPool.execute(new WriteThread(message.array(), mListener));
     }
     
     /**
@@ -119,7 +120,12 @@ public class Connection {
      *
      */
     public void sendPassword(String passwd) {
-        sPool.execute(new WriteThread(passwd.getBytes(), PASSWD_REQUEST_BYTES, mListener));
+        if (passwd.length() > PASSWD_MAX_LENGTH)
+            throw new IllegalArgumentException("password is too long");
+        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+        message[0] = Byte.valueOf(PASSWD_REQUEST_CHAR);
+        System.arraycopy(passwd.getBytes(), 0, message, 1, passwd.length());
+        sPool.execute(new WriteThread(message, mListener));
     }
 
     /**
@@ -175,23 +181,19 @@ public class Connection {
         private final String WRITE_RESPONSE_OKAY     = "K";
         private final int    WRITE_RESPONSE_LENGTH   = 1;
         private final int    CONNECT_RETRY_TIMES     = 2;
-
-        private byte[]            mHeader;
+        
         private byte[]            mMessage;
         private BluetoothListener mListener;
         
-        public WriteThread(byte[] message, byte[] header, BluetoothListener cl) {
+        public WriteThread(byte[] message, BluetoothListener cl) {
             mListener = cl;
-            mHeader   = header;
             mMessage  = message;
         }
         public void run() {
             int attempt = 0;
             while (attempt < CONNECT_RETRY_TIMES) {
                 try {
-                    ByteBuffer buf = ByteBuffer.wrap(mHeader);
-                    buf.put(mMessage);
-                    mOutputStream.write(buf.array());
+                    mOutputStream.write(mMessage);
                     byte[] response = new byte[WRITE_RESPONSE_LENGTH];
                     mInputStream.read(response);
                     if (!(new String(response)).equals(WRITE_RESPONSE_OKAY)) {

@@ -39,7 +39,6 @@ public class BluetoothUtility {
 
     private static final UUID     mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    
     private BluetoothAdapter      mBluetoothAdapter;    // Connection point for Bluetooth devices
     private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
     private Context               mContext;             // Context from mobile app

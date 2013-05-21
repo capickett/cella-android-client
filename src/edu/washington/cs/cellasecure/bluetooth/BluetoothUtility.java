@@ -228,7 +228,7 @@ public class BluetoothUtility {
      * 
      * @author CellaSecure
      */
-    interface BluetoothListener {
+    public interface BluetoothListener {
         /**
          * Callback to return an established connection
          * 

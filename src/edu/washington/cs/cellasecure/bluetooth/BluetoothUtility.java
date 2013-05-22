@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -41,20 +42,20 @@ public class BluetoothUtility {
 
     private BluetoothAdapter      mBluetoothAdapter;    // Connection point for Bluetooth devices
     private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
-    private Context               mContext;             // Context from mobile app
+    private Activity              mActivity;            // Parent activity of this instance
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
     private BluetoothListener     mListener;            // Asynchronous client callbacks
 
     /**
      * Constructs a new Bluetooth utility to manage devices
      * 
-     * @param context
+     * @param activity
      *            Context for mobile application
      * @param callbacks
      *            Client callbacks for receiving notifications
      */
-    public BluetoothUtility(Context context, BluetoothListener callbacks) {
-        mContext  = context;
+    public BluetoothUtility(Activity activity, BluetoothListener callbacks) {
+        mActivity = activity;
         mListener = callbacks;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null)
@@ -73,14 +74,14 @@ public class BluetoothUtility {
             }
         };
         IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        mContext.registerReceiver(mBroadcastReceiver, action_found_filter);
+        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
     }
 
     /**
      * Start a discovery for in-range Bluetooth devices, scanning
      * for at most 12 seconds.  When a device is found will call
      * onDiscovery with an updated list of found devices.
-     * @see BluetootListener
+     * @see BluetoothListener
      */
     public void scanForDevices() {
         if (!mBluetoothAdapter.isEnabled())
@@ -106,8 +107,9 @@ public class BluetoothUtility {
      * @return an Intent to be used in "startActivityForResult" to request
      * Bluetooth to be enabled
      */
-    public Intent enableBluetooth() {
-        return new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+    public void enableBluetooth() {
+        Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        mActivity.startActivityForResult(i, 1);
     }
     
     /**
@@ -213,12 +215,12 @@ public class BluetoothUtility {
     }
     
     public void onPause() {
-        mContext.unregisterReceiver(mBroadcastReceiver);
+        mActivity.unregisterReceiver(mBroadcastReceiver);
     }
     
     public void onResume() {
         IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        mContext.registerReceiver(mBroadcastReceiver, action_found_filter);
+        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
     }
     
     /**

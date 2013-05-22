@@ -234,7 +234,7 @@ public class BluetoothUtility {
          * @param connection
          *            the connection to the Bluetooth device
          */
-        public void onConnected(Connection connection);
+        public void onConnected(BluetoothDevice device, Connection connection);
 
         /**
          * Callback to notify a client when a device is found

@@ -55,7 +55,7 @@ public class ConnectionThread implements Runnable {
         try {
             BluetoothSocket socket = mDevice.createRfcommSocketToServiceRecord(mUUID);
             socket.connect();
-            mListener.onConnected(new Connection(socket, mListener));
+            mListener.onConnected(mDevice, new Connection(socket, mListener));
         } catch (IOException e) {
             // e.printStackTrace();
             return;

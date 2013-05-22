@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import android.bluetooth.BluetoothSocket;
+import android.util.Log;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListener;
 
 /**
@@ -37,7 +38,7 @@ public class Connection {
     private static final String PASSWD_REQUEST_CHAR = "p";
     private static final int    PASSWD_MAX_LENGTH   = 32;
     
-    private static ExecutorService     sPool = Executors.newSingleThreadExecutor();
+    private static ExecutorService sPool = Executors.newSingleThreadExecutor();
 
     private DeviceConfiguration mConfig;
     private BluetoothSocket     mBluetoothSocket;
@@ -82,7 +83,6 @@ public class Connection {
      * Gracefully end connection with a Bluetooth device
      */
     public void disconnect() {
-        sPool.shutdown();
         try {
             mBluetoothSocket.close();
             mBluetoothSocket = null;
@@ -98,6 +98,9 @@ public class Connection {
         if (mConfig != null)
             mListener.onConfigurationRead(mConfig);
         else
+            if (sPool.isShutdown()) {
+                Log.e("MainActivity", "sPool is shutdown");
+            } 
             sPool.execute(new InitThread(mListener));
     }
     

@@ -26,7 +26,7 @@ public class DeviceUtils {
     }
 
     // fileToMap
-    public static Map<String, String> fileToMap(Context context, String filename) {
+    public static Map<String, String> fileToMap(Context context) {
         Map<String, String> addrNameMap = new HashMap<String, String>();
         try {
             Scanner scan = new Scanner(context.openFileInput(mFilename));

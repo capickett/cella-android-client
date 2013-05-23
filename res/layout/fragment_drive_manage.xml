@@ -11,14 +11,10 @@
         android:textIsSelectable="false"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
-
-    <fragment
-        android:id="@+id/drive_manage_setup_fragment"
-        android:name="edu.washington.cs.cellasecure.fragments.DriveSetupFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        tools:layout="@layout/fragment_drive_setup" />
+    <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" android:layout_gravity="center" android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp" android:id="@+id/drive_unlock_fragment_container">
+    </FrameLayout>
 
 </LinearLayout>

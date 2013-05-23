@@ -1,13 +1,14 @@
 package edu.washington.cs.cellasecure.storage;
 
+import android.content.Context;
+import android.os.AsyncTask;
+
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
-
-import android.content.Context;
 
 public class DeviceUtils {
     private static final String mFilename = "address_to_name_map.dat";
@@ -43,4 +44,5 @@ public class DeviceUtils {
         }
         return addrNameMap;
     }
+
 }

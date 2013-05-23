@@ -2,6 +2,7 @@ package edu.washington.cs.cellasecure.fragments;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -63,18 +64,22 @@ public class DriveManageFragment extends Fragment {
         } else {
             Bundle args = getArguments();
             mCurrentDrive = args.getParcelable(Drive.KEY_BUNDLE_DRIVE);
-        }
-            
-        // Fill in details
-        Activity parent = getActivity();
-        mLockStatusIndicator = (TextView) parent.findViewById(R.id.drive_manage_lock_status);
 
-        // mLockStatusIndicator
-        if (mCurrentDrive.isLocked()) {
-            // TODO: Display big unlock button
-        } else {
-            mLockStatusIndicator.setBackgroundResource(android.R.color.holo_green_dark);
-            mLockStatusIndicator.setText(R.string.device_manage_lock_status_unlocked);
+            Fragment frag = new DriveUnlockFragment();
+            FragmentTransaction transaction = getFragmentManager().beginTransaction();
+            frag.setArguments(args);
+            transaction.replace(R.id.drive_unlock_fragment_container, frag);
+            transaction.commit();
+
+            // Fill in details
+            Activity parent = getActivity();
+            mLockStatusIndicator = (TextView) parent.findViewById(R.id.drive_manage_lock_status);
+
+            // mLockStatusIndicator
+            if (!mCurrentDrive.isLocked()) {
+                mLockStatusIndicator.setBackgroundResource(android.R.color.holo_green_dark);
+                mLockStatusIndicator.setText(R.string.device_manage_lock_status_unlocked);
+            }
         }
     }
 

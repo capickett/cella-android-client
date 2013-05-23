@@ -22,19 +22,17 @@ public class Drive implements Parcelable {
     }
 
     @Override
-    public String toString() {
-        return mName;
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
+    public int describeContents() { return 0; }
 
     public boolean isLocked() {
         // TODO: Complete me
         return true;
     }
+
+    @Override
+    public String toString() { return mName; }
+    public String getName() { return mName; }
+    public BluetoothDevice getDevice() { return mDevice; }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {

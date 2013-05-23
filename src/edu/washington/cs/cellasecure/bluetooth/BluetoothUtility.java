@@ -38,6 +38,8 @@ import android.content.IntentFilter;
  */
 public class BluetoothUtility {
 
+    public static final int BLUETOOTH_REQUEST_ID = 1337;
+
     private static final UUID     mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private BluetoothAdapter      mBluetoothAdapter;    // Connection point for Bluetooth devices
@@ -109,7 +111,7 @@ public class BluetoothUtility {
      */
     public void enableBluetooth() {
         Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        mActivity.startActivityForResult(i, 1);
+        mActivity.startActivityForResult(i, BLUETOOTH_REQUEST_ID);
     }
     
     /**

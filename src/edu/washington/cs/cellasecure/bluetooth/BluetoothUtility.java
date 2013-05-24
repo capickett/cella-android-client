@@ -44,8 +44,9 @@ public class BluetoothUtility {
     private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
     private Activity              mActivity;            // Parent activity of this instance
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
-    private BluetoothListener     mListener;            // Asynchronous client callbacks
 
+    private OnDiscoveryListener   mListener;            // Listener to handle device discovery
+    
     /**
      * Constructs a new Bluetooth utility to manage devices
      * 
@@ -54,9 +55,8 @@ public class BluetoothUtility {
      * @param callbacks
      *            Client callbacks for receiving notifications
      */
-    public BluetoothUtility(Activity activity, BluetoothListener callbacks) {
+    public BluetoothUtility(Activity activity) {
         mActivity = activity;
-        mListener = callbacks;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null)
             throw new IllegalStateException("Bluetooth not supported");
@@ -69,7 +69,7 @@ public class BluetoothUtility {
                 if (action.equals(BluetoothDevice.ACTION_FOUND)) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     mDiscoveredDevices.add(device);
-                    mListener.onDiscovery(getDiscoveredDevices());
+                    if (mListener != null) mListener.onDiscovery(getDiscoveredDevices());
                 }
             }
         };
@@ -117,6 +117,13 @@ public class BluetoothUtility {
      */
     public boolean isScanning() {
         return mBluetoothAdapter.isDiscovering();
+    }
+    
+    /**
+     * Cancel device discovery
+     */
+    public void cancelDiscovery() {
+        mBluetoothAdapter.cancelDiscovery();
     }
 
     /**
@@ -211,7 +218,7 @@ public class BluetoothUtility {
     public void connect(BluetoothDevice device) {
         if (!mBluetoothAdapter.isEnabled()) 
             throw new IllegalStateException("Bluetooth must be enabled");
-        new Thread(new ConnectionThread(device, mBluetoothAdapter, mUUID, mListener)).start();
+        new Thread(new ConnectionThread(device, mBluetoothAdapter, mUUID)).start();
     }
     
     public void onPause() {
@@ -223,21 +230,11 @@ public class BluetoothUtility {
         mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
     }
     
-    /**
-     * Callback interface to be implemented by the client. Used to deliver
-     * results of asynchronous methods
-     * 
-     * @author CellaSecure
-     */
-    public interface BluetoothListener {
-        /**
-         * Callback to return an established connection
-         * 
-         * @param connection
-         *            the connection to the Bluetooth device
-         */
-        public void onConnected(BluetoothDevice device, Connection connection);
-
+    public void setOnDiscoveryListener (OnDiscoveryListener dl) {
+        mListener = dl;
+    }
+    
+    public interface OnDiscoveryListener {
         /**
          * Callback to notify a client when a device is found
          * 
@@ -245,19 +242,5 @@ public class BluetoothUtility {
          *            the list of discovered Bluetooth devices
          */
         public void onDiscovery(List<BluetoothDevice> bluetoothDevices);
-        
-        /**
-         * Callback to notify a client when configuration is received
-         * @param config
-         *            the configuration received from Bluetooth device, null if failure
-         */
-        public void onConfigurationRead(DeviceConfiguration config);
-        
-        /**
-         * Callback to notify a client that socket failed to write to Bluetooth device
-         * @param error
-         *            a string description of the failure
-         */
-        public void onWriteError(String error);
     }
 }

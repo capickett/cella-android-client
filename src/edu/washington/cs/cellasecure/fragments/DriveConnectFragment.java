@@ -18,12 +18,14 @@ package edu.washington.cs.cellasecure.fragments;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import android.app.Activity;
 import android.app.Fragment;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -39,14 +41,16 @@ import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.OnDiscoveryListener;
+import edu.washington.cs.cellasecure.storage.DeviceUtils;
 
 public class DriveConnectFragment extends Fragment implements
         OnItemClickListener {
 
-    private ListView mDeviceList;
+    private ListView            mDeviceList;
     private ArrayAdapter<Drive> mDeviceListAdapter;
-    private Set<Drive> mDeviceListItems = new HashSet<Drive>();
-    private BluetoothUtility mBT;
+    private Set<Drive>          mDeviceListItems     = new HashSet<Drive>();
+    private Map<String, String> mBondedMap           = null;
+    private BluetoothUtility    mBT;
 
     /*
      * (non-Javadoc)
@@ -95,7 +99,10 @@ public class DriveConnectFragment extends Fragment implements
         Activity activity = getActivity();
         mDeviceListAdapter = new ArrayAdapter<Drive>(activity,
                 android.R.layout.simple_list_item_1);
-        startBluetoothScan();
+        
+        
+        
+        new LoadDevicesTask(getActivity()).execute();
 
         mDeviceList = (ListView) activity.findViewById(R.id.drive_connect_list);
         mDeviceList.setAdapter(mDeviceListAdapter);
@@ -111,7 +118,7 @@ public class DriveConnectFragment extends Fragment implements
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.menu_refresh_devices:
-            startBluetoothScan();
+            new LoadDevicesTask(getActivity()).execute();
             return true;
         default:
             return false;
@@ -133,11 +140,11 @@ public class DriveConnectFragment extends Fragment implements
         mBT = new BluetoothUtility(getActivity());
         
         mBT.setOnDiscoveryListener(new OnDiscoveryListener() {
-            
             @Override
             public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
+                assert (mBondedMap != null);
                 for (BluetoothDevice dev : bluetoothDevices)
-                    if (!mBT.getBondedDevices().contains(dev))
+                    if (!mBondedMap.containsKey(dev.getAddress()))
                         mDeviceListItems.add(new Drive(dev.getName(), dev));
                 mDeviceListAdapter.clear();
                 mDeviceListAdapter.addAll(mDeviceListItems);
@@ -177,5 +184,22 @@ public class DriveConnectFragment extends Fragment implements
     public void onResume() {
         super.onResume();
         mBT.onResume();
+    }
+    
+    private class LoadDevicesTask extends AsyncTask<Void, Void, Map<String, String>> {
+        private Activity mActivity;
+        
+        public LoadDevicesTask (Activity activity) {
+            mActivity = activity;
+        }
+        
+        protected Map<String, String> doInBackground(Void... params) {
+            return DeviceUtils.fileToMap(mActivity);
+        }
+        
+        protected void onPostExecute(Map<String, String> result) {
+            mBondedMap = result;
+            startBluetoothScan();
+        }
     }
 }

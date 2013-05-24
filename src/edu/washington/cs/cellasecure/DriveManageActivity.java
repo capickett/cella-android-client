@@ -129,7 +129,7 @@ public class DriveManageActivity extends Activity implements
                 actionBar.setListNavigationCallbacks(mDropDownAdapter, mActivity);
                 actionBar.setDisplayShowTitleEnabled(false);
                 for (Map.Entry<String, String> e : result.entrySet())
-                    mDropDownAdapter.add(new Drive(e.getKey(), e.getValue()));
+                    mDropDownAdapter.add(new Drive(e.getValue(), e.getKey()));
                 actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
                 actionBar.setSelectedNavigationItem(0);
                 Bundle args = new Bundle();

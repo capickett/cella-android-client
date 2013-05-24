@@ -1,3 +1,19 @@
+/*
+ * Copyright 2013 CellaSecure
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package edu.washington.cs.cellasecure.fragments;
 
 import java.util.HashSet;
@@ -6,7 +22,9 @@ import java.util.Set;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -103,9 +121,24 @@ public class DriveConnectFragment extends Fragment implements
         }
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        switch (requestCode) {
+            case BluetoothUtility.BLUETOOTH_REQUEST_ID:
+                if (resultCode == Activity.RESULT_OK)
+                    startBluetoothScan();
+        }
+    }
+
     private void startBluetoothScan() {
         mBT = new BluetoothUtility(getActivity(), this);
-        mBT.scanForDevices();
+
+        if (!mBT.isEnabled())
+            mBT.enableBluetooth();
+        else
+            mBT.scanForDevices();
     }
 
     /*
@@ -125,7 +158,7 @@ public class DriveConnectFragment extends Fragment implements
     }
 
     @Override
-    public void onConnected(Connection connection) {
+    public void onConnected(BluetoothDevice device, Connection connection) {
         /* We will not connect in this fragment, only pair */
     }
 
@@ -140,17 +173,20 @@ public class DriveConnectFragment extends Fragment implements
     }
 
     @Override
-    public void onConfigurationRead(DeviceConfiguration config) {
-        // TODO Auto-generated method stub
-        
+    public void onConfigurationRead(DeviceConfiguration config) { }
+
+    @Override
+    public void onWriteError(String error) { }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        mBT.onPause();
     }
 
     @Override
-    public void onWriteError(String error) {
-        // TODO Auto-generated method stub
-        
+    public void onResume() {
+        super.onResume();
+        mBT.onResume();
     }
-    
-    // FIXME: Needs to unregisterReceiver onPause
-
 }

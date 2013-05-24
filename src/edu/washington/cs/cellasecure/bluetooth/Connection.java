@@ -25,7 +25,6 @@ import java.util.concurrent.Executors;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 
-
 /**
  * Utility for managing and executing operations over a connection to a
  * Bluetooth device
@@ -35,7 +34,8 @@ import android.bluetooth.BluetoothSocket;
 public class Connection {
     
     private static final byte LOCK_STATE_QUERY_BYTE = '?';
-    private static final byte CONFIG_REQUEST_BYTE   = 'c'; 
+    private static final byte CONFIG_REQUEST_BYTE   = 'g'; 
+    private static final byte CONFIG_SEND_BYTE      = 'c';
     private static final byte PASSWD_REQUEST_BYTE   = 'p';
     private static final int  PASSWD_MAX_LENGTH     = 32;
     
@@ -112,7 +112,7 @@ public class Connection {
      * Sends the current configuration to the device, updating the device if necessary
      */
     public void sendConfiguration() {
-        sPool.execute(new WriteThread(cons(CONFIG_REQUEST_BYTE, mConfig.getBytes()),
+        sPool.execute(new WriteThread(cons(CONFIG_SEND_BYTE, mConfig.getBytes()),
                 mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
     }
     
@@ -195,9 +195,7 @@ public class Connection {
     // Asynchronous Helpers //
 
     private class InitThread implements Runnable {
-        private final String CONFIG_REQUEST_STRING   = "C";
-        private final byte[] CONFIG_REQUEST_BYTES    = CONFIG_REQUEST_STRING.getBytes();
-        private final int    CONFIG_RESPONSE_LENGTH  = 1;
+        private final int    CONFIG_RESPONSE_LENGTH  = 2;
         
         private OnConfigurationListener mListener;
         
@@ -206,10 +204,13 @@ public class Connection {
         }
         public void run() {
             try {
-                mOutputStream.write(CONFIG_REQUEST_BYTES);
+                mOutputStream.write(CONFIG_REQUEST_BYTE);
                 byte[] buf = new byte[CONFIG_RESPONSE_LENGTH];
                 mInputStream.read(buf);
-                mConfig = new DeviceConfiguration(new String(buf));
+                if (buf[0] == 'K') 
+                    mConfig = new DeviceConfiguration(new String(buf));
+                else
+                    throw new IOException("Bad configuration");
             } catch (IOException e) {
                 mConfig = null;
             } finally {

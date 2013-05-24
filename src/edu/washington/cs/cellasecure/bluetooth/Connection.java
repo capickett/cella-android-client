@@ -19,7 +19,6 @@ package edu.washington.cs.cellasecure.bluetooth;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -68,7 +67,7 @@ public class Connection {
         }
         mBluetoothSocket = socket;
         mConfig          = null;
-        
+
         InputStream is = null;
         OutputStream os = null;
         if (mBluetoothSocket != null) {
@@ -79,10 +78,11 @@ public class Connection {
         }
         mInputStream = is;
         mOutputStream = os;
-        
+
         mWriteListener  = null;
         mConfigListener = null;
-        
+        mLockListener    = null;
+
         getConfiguration();
     }
 
@@ -105,9 +105,6 @@ public class Connection {
         if (mConfig != null)
             if (mConfigListener != null) mConfigListener.onConfigurationRead(mConfig);
         else
-            if (sPool.isShutdown()) {
-                Log.e("MainActivity", "sPool is shutdown");
-            } 
             sPool.execute(new InitThread(mConfigListener));
     }
     
@@ -115,9 +112,7 @@ public class Connection {
      * Sends the current configuration to the device, updating the device if necessary
      */
     public void sendConfiguration() {
-        ByteBuffer message = ByteBuffer.wrap(new byte[]{CONFIG_REQUEST_BYTE});
-        message.put(mConfig.configBytes());
-        sPool.execute(new WriteThread(message.array(),
+        sPool.execute(new WriteThread(cons(CONFIG_REQUEST_BYTE, mConfig.getBytes()),
                 mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
     }
     
@@ -133,10 +128,7 @@ public class Connection {
     public void sendPassword(String passwd) {
         if (passwd.length() > PASSWD_MAX_LENGTH)
             throw new IllegalArgumentException("password is too long");
-        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
-        message[0] = PASSWD_REQUEST_BYTE;
-        System.arraycopy(passwd.getBytes(), 0, message, 1, passwd.length());
-        sPool.execute(new WriteThread(message,
+        sPool.execute(new WriteThread(cons(PASSWD_REQUEST_BYTE, passwd.getBytes()),
                 mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
     }
 
@@ -179,6 +171,27 @@ public class Connection {
         mWriteListener = wl;
     }
     
+    /**
+     * Sets the handler for the lock response callback
+     * @param ll    the listener to handle lock status callbacks
+     */
+    public void setOnLockQueryListener (OnLockQueryListener ll) {
+        mLockListener = ll;
+    }
+    
+    /**
+     * Combine header and body into one byte array
+     * @param header    byte to be front of list
+     * @param body      rest of message
+     * @return          header::body
+     */
+    private byte[] cons(byte header, byte[] body) {
+        byte[] packet = new byte[body.length + 1];
+        packet[0] = header;
+        System.arraycopy(body, 0, packet, 1, body.length);
+        return packet;
+    }
+    
     // Asynchronous Helpers //
 
     private class InitThread implements Runnable {
@@ -210,8 +223,8 @@ public class Connection {
         private final int    CONNECT_RETRY_TIMES       = 2;
         
         private final byte   WRITE_RESPONSE_OKAY       = 'K';
-        private final byte   DEVICE_UNLOCKED_RESPONSE  = 'U';
-        private final byte   DEVICE_LOCKED_RESPONE     = 'L';
+//        private final byte   DEVICE_UNLOCKED_RESPONSE  = 'U';
+        private final byte   DEVICE_LOCKED_RESPONSE     = 'L';
         
         private byte[]                      mMessage;
         private BluetoothDevice             mDevice;
@@ -241,7 +254,9 @@ public class Connection {
                     if (response[0] == LOCK_STATE_QUERY_BYTE) {
                         if (mLockListener != null)
                             mLockListener.isLocked(mDevice, 
-                                    (response[1] == DEVICE_UNLOCKED_RESPONSE));
+                                    (response[1] == DEVICE_LOCKED_RESPONSE));
+//                        else // sanity check
+//                            assert (response[1] == DEVICE_UNLOCKED_RESPONSE);
                     } else {
                         if (mWriteListener != null)
                             mWriteListener.onWriteResponse(new String(response));
@@ -268,7 +283,7 @@ public class Connection {
          */
         public void onConfigurationRead(DeviceConfiguration config);
     }
-    
+
     public interface OnWriteFeedbackListener {
         /**
          * Callback to notify a client that socket failed to write to Bluetooth device
@@ -284,12 +299,12 @@ public class Connection {
          */
         public void onWriteResponse(String response);
     }
-    
+
     public interface OnLockQueryListener {
         /**
          * Callback to notify a client whether a device is unlocked or not
-         * @param status  true is device is unlocked, false otherwise
-         * @return  true if device is unlocked, false otherwise
+         * @param status  true is device is locked, false otherwise
+         * @return  true if device is locked, false otherwise
          */
         public void isLocked(BluetoothDevice device, boolean status);
     }

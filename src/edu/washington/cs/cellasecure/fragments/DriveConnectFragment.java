@@ -16,6 +16,7 @@
 
 package edu.washington.cs.cellasecure.fragments;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -169,21 +171,24 @@ public class DriveConnectFragment extends Fragment implements
     public void onItemClick(AdapterView<?> parent, View view, int position,
             long id) {
         Drive selectedDrive = (Drive) parent.getItemAtPosition(position);
-        
+
+        Log.e("Foo", "in onItemClick");
+        mBondedMap.put(selectedDrive.getAddress(), selectedDrive.getName());
+        Log.e("Foo", "Map: " + mBondedMap.toString());
+        new WriteDeviceTask(getActivity(), mBondedMap).execute();
         // TODO: Add device to stored list
-        getActivity().finish();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        mBT.onPause();
+        if (mBT != null) mBT.onPause();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        mBT.onResume();
+        if (mBT != null) mBT.onResume();
     }
     
     private class LoadDevicesTask extends AsyncTask<Void, Void, Map<String, String>> {
@@ -200,6 +205,29 @@ public class DriveConnectFragment extends Fragment implements
         protected void onPostExecute(Map<String, String> result) {
             mBondedMap = result;
             startBluetoothScan();
+        }
+    }
+    
+    private class WriteDeviceTask extends AsyncTask<Void, Void, Void> {
+        private Activity mActivity;
+        private Map<String, String> mMap;
+        
+        public WriteDeviceTask (Activity activity, Map<String, String> addrMap) {
+            mActivity = activity;
+            mMap      = addrMap;
+        }
+
+        protected Void doInBackground(Void... params) {
+            try {
+                DeviceUtils.mapToFile(mActivity, mMap);
+            } catch (IOException e) {
+                /* fail! */
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void params) {
+            mActivity.finish();
         }
     }
 }

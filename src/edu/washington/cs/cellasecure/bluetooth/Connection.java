@@ -24,7 +24,7 @@ import java.util.concurrent.Executors;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.util.Log;
+
 
 /**
  * Utility for managing and executing operations over a connection to a

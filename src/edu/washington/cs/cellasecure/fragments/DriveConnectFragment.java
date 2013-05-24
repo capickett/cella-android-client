@@ -22,7 +22,6 @@ import java.util.Set;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Bundle;
@@ -39,12 +38,10 @@ import android.widget.ListView;
 import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
-import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListener;
-import edu.washington.cs.cellasecure.bluetooth.Connection;
-import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.OnDiscoveryListener;
 
 public class DriveConnectFragment extends Fragment implements
-        OnItemClickListener, BluetoothListener {
+        OnItemClickListener {
 
     private ListView mDeviceList;
     private ArrayAdapter<Drive> mDeviceListAdapter;
@@ -133,7 +130,20 @@ public class DriveConnectFragment extends Fragment implements
     }
 
     private void startBluetoothScan() {
-        mBT = new BluetoothUtility(getActivity(), this);
+        mBT = new BluetoothUtility(getActivity());
+        
+        mBT.setOnDiscoveryListener(new OnDiscoveryListener() {
+            
+            @Override
+            public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
+                for (BluetoothDevice dev : bluetoothDevices)
+                    if (!mBT.getBondedDevices().contains(dev))
+                        mDeviceListItems.add(new Drive(dev.getName(), dev));
+                mDeviceListAdapter.clear();
+                mDeviceListAdapter.addAll(mDeviceListItems);
+                mDeviceListAdapter.notifyDataSetChanged();
+            }
+        });
 
         if (!mBT.isEnabled())
             mBT.enableBluetooth();
@@ -156,27 +166,6 @@ public class DriveConnectFragment extends Fragment implements
         // TODO: Add device to stored list
         getActivity().finish();
     }
-
-    @Override
-    public void onConnected(BluetoothDevice device, Connection connection) {
-        /* We will not connect in this fragment, only pair */
-    }
-
-    @Override
-    public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
-        for (BluetoothDevice dev : bluetoothDevices)
-            if (!mBT.getBondedDevices().contains(dev))
-                mDeviceListItems.add(new Drive(dev.getName(), dev));
-        mDeviceListAdapter.clear();
-        mDeviceListAdapter.addAll(mDeviceListItems);
-        mDeviceListAdapter.notifyDataSetChanged();
-    }
-
-    @Override
-    public void onConfigurationRead(DeviceConfiguration config) { }
-
-    @Override
-    public void onWriteError(String error) { }
 
     @Override
     public void onPause() {

@@ -47,7 +47,8 @@ public class BluetoothUtility {
     private Activity              mActivity;            // Parent activity of this instance
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
 
-    private OnDiscoveryListener   mListener;            // Listener to handle device discovery
+    private OnDiscoveryListener   mDiscoveryListener;   // Listener to handle device discovery
+    private OnConnectListener     mConnectListener;     // Listener to handle connections
     
     /**
      * Constructs a new Bluetooth utility to manage devices
@@ -71,7 +72,8 @@ public class BluetoothUtility {
                 if (action.equals(BluetoothDevice.ACTION_FOUND)) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     mDiscoveredDevices.add(device);
-                    if (mListener != null) mListener.onDiscovery(getDiscoveredDevices());
+                    if (mDiscoveryListener != null)
+                        mDiscoveryListener.onDiscovery(getDiscoveredDevices());
                 }
             }
         };
@@ -220,8 +222,11 @@ public class BluetoothUtility {
     public void connect(BluetoothDevice device) {
         if (!mBluetoothAdapter.isEnabled()) 
             throw new IllegalStateException("Bluetooth must be enabled");
-        new Thread(new ConnectionThread(device, mBluetoothAdapter, mUUID)).start();
+        new Thread(new ConnectionThread(
+                device, mBluetoothAdapter, mUUID, mConnectListener)).start();
     }
+    
+    /* For Android */
     
     public void onPause() {
         mActivity.unregisterReceiver(mBroadcastReceiver);
@@ -232,10 +237,18 @@ public class BluetoothUtility {
         mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
     }
     
+    /* Callback setters */
+    
     public void setOnDiscoveryListener (OnDiscoveryListener dl) {
-        mListener = dl;
+        mDiscoveryListener = dl;
     }
     
+    public void setOnConnectListener (OnConnectListener cl) {
+        mConnectListener = cl;
+    }
+
+    /* Listener interfaces */
+
     public interface OnDiscoveryListener {
         /**
          * Callback to notify a client when a device is found
@@ -244,5 +257,15 @@ public class BluetoothUtility {
          *            the list of discovered Bluetooth devices
          */
         public void onDiscovery(List<BluetoothDevice> bluetoothDevices);
+    }
+    
+    public interface OnConnectListener {
+        /**
+         * Callback to return an established connection
+         * 
+         * @param connection
+         *            the connection to the Bluetooth device
+         */
+        public void onConnected(Connection connection);
     }
 }

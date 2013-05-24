@@ -19,13 +19,12 @@ package edu.washington.cs.cellasecure.bluetooth;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.util.Log;
-import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListener;
+
 
 /**
  * Utility for managing and executing operations over a connection to a
@@ -34,9 +33,11 @@ import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListene
  * @author CellaSecure
  */
 public class Connection {
-    private static final String CONFIG_REQUEST_CHAR = "c"; 
-    private static final String PASSWD_REQUEST_CHAR = "p";
-    private static final int    PASSWD_MAX_LENGTH   = 32;
+    
+    private static final byte LOCK_STATE_QUERY_BYTE = '?';
+    private static final byte CONFIG_REQUEST_BYTE   = 'c'; 
+    private static final byte PASSWD_REQUEST_BYTE   = 'p';
+    private static final int  PASSWD_MAX_LENGTH     = 32;
     
     private static ExecutorService sPool = Executors.newSingleThreadExecutor();
 
@@ -44,8 +45,11 @@ public class Connection {
     private BluetoothSocket     mBluetoothSocket;
     private InputStream         mInputStream;
     private OutputStream        mOutputStream;
-    private BluetoothListener   mListener;
-
+    
+    private OnWriteFeedbackListener     mWriteListener;
+    private OnConfigurationListener     mConfigListener;
+    private OnLockQueryListener         mLockListener;
+    
     /**
      * Construct a new connection over the given socket The socket must be
      * established.  Calls onConfigurationRead with the devices configuration
@@ -57,14 +61,13 @@ public class Connection {
      * @throws IllegalArgumentException
      *             if socket is null
      */
-    public Connection(BluetoothSocket socket, BluetoothListener listener) {
+    public Connection(BluetoothSocket socket) {
         if (socket == null) {
             throw new IllegalArgumentException("Socket must be established");
         }
         mBluetoothSocket = socket;
-        mListener        = listener;
         mConfig          = null;
-        
+
         InputStream is = null;
         OutputStream os = null;
         if (mBluetoothSocket != null) {
@@ -75,6 +78,10 @@ public class Connection {
         }
         mInputStream = is;
         mOutputStream = os;
+
+        mWriteListener  = null;
+        mConfigListener = null;
+        mLockListener    = null;
 
         getConfiguration();
     }
@@ -96,21 +103,17 @@ public class Connection {
      */
     public void getConfiguration() {
         if (mConfig != null)
-            mListener.onConfigurationRead(mConfig);
+            if (mConfigListener != null) mConfigListener.onConfigurationRead(mConfig);
         else
-            if (sPool.isShutdown()) {
-                Log.e("MainActivity", "sPool is shutdown");
-            } 
-            sPool.execute(new InitThread(mListener));
+            sPool.execute(new InitThread(mConfigListener));
     }
     
     /**
      * Sends the current configuration to the device, updating the device if necessary
      */
     public void sendConfiguration() {
-        ByteBuffer message = ByteBuffer.wrap(CONFIG_REQUEST_CHAR.getBytes());
-        message.put(mConfig.configBytes());
-        sPool.execute(new WriteThread(message.array(), mListener));
+        sPool.execute(new WriteThread(cons(CONFIG_REQUEST_BYTE, mConfig.getBytes()),
+                mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
     }
     
     /**
@@ -125,10 +128,8 @@ public class Connection {
     public void sendPassword(String passwd) {
         if (passwd.length() > PASSWD_MAX_LENGTH)
             throw new IllegalArgumentException("password is too long");
-        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
-        message[0] = Byte.valueOf(PASSWD_REQUEST_CHAR);
-        System.arraycopy(passwd.getBytes(), 0, message, 1, passwd.length());
-        sPool.execute(new WriteThread(message, mListener));
+        sPool.execute(new WriteThread(cons(PASSWD_REQUEST_BYTE, passwd.getBytes()),
+                mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
     }
 
     /**
@@ -154,6 +155,43 @@ public class Connection {
         mConfig = config;
     }
     
+    /**
+     * Sets the handler for configuration related callbacks
+     * @param cl    the listener to handle config callbacks
+     */
+    public void setOnConfigurationListener (OnConfigurationListener cl) {
+        mConfigListener = cl;
+    }
+    
+    /**
+     * Sets the handler for write response related callbacks
+     * @param wl    the listener to handle write related callbacks
+     */
+    public void setOnWriteFeedbackListener (OnWriteFeedbackListener wl) {
+        mWriteListener = wl;
+    }
+    
+    /**
+     * Sets the handler for the lock response callback
+     * @param ll    the listener to handle lock status callbacks
+     */
+    public void setOnLockQueryListener (OnLockQueryListener ll) {
+        mLockListener = ll;
+    }
+    
+    /**
+     * Combine header and body into one byte array
+     * @param header    byte to be front of list
+     * @param body      rest of message
+     * @return          header::body
+     */
+    private byte[] cons(byte header, byte[] body) {
+        byte[] packet = new byte[body.length + 1];
+        packet[0] = header;
+        System.arraycopy(body, 0, packet, 1, body.length);
+        return packet;
+    }
+    
     // Asynchronous Helpers //
 
     private class InitThread implements Runnable {
@@ -161,9 +199,9 @@ public class Connection {
         private final byte[] CONFIG_REQUEST_BYTES    = CONFIG_REQUEST_STRING.getBytes();
         private final int    CONFIG_RESPONSE_LENGTH  = 1;
         
-        private BluetoothListener mListener;
+        private OnConfigurationListener mListener;
         
-        public InitThread(BluetoothListener cl) {
+        public InitThread(OnConfigurationListener cl) {
             mListener = cl;
         }
         public void run() {
@@ -175,39 +213,99 @@ public class Connection {
             } catch (IOException e) {
                 mConfig = null;
             } finally {
-                mListener.onConfigurationRead(mConfig);
+                if (mListener != null) mListener.onConfigurationRead(mConfig);
             }
         }
     }
     
     private class WriteThread implements Runnable {
-        private final String WRITE_RESPONSE_OKAY     = "K";
-        private final int    WRITE_RESPONSE_LENGTH   = 1;
-        private final int    CONNECT_RETRY_TIMES     = 2;
+        private final int    MAX_WRITE_RESPONSE_LENGTH = 2;
+        private final int    CONNECT_RETRY_TIMES       = 2;
         
-        private byte[]            mMessage;
-        private BluetoothListener mListener;
+        private final byte   WRITE_RESPONSE_OKAY       = 'K';
+//        private final byte   DEVICE_UNLOCKED_RESPONSE  = 'U';
+        private final byte   DEVICE_LOCKED_RESPONSE     = 'L';
         
-        public WriteThread(byte[] message, BluetoothListener cl) {
-            mListener = cl;
-            mMessage  = message;
+        private byte[]                      mMessage;
+        private BluetoothDevice             mDevice;
+        private OnWriteFeedbackListener     mWriteListener;
+        private OnLockQueryListener         mLockListener;
+        
+        public WriteThread(byte[] message, 
+                BluetoothDevice device,
+                OnWriteFeedbackListener wlistener,
+                OnLockQueryListener llistener) {
+            mDevice        = device;
+            mWriteListener = wlistener;
+            mLockListener  = llistener;
+            mMessage       = message;
         }
         public void run() {
             int attempt = 0;
             while (attempt < CONNECT_RETRY_TIMES) {
                 try {
                     mOutputStream.write(mMessage);
-                    byte[] response = new byte[WRITE_RESPONSE_LENGTH];
+                    byte[] response = new byte[MAX_WRITE_RESPONSE_LENGTH];
                     mInputStream.read(response);
+                    
                     if (!(new String(response)).equals(WRITE_RESPONSE_OKAY)) {
                         throw new IOException("Bad response");
                     }
+                    if (response[0] == LOCK_STATE_QUERY_BYTE) {
+                        if (mLockListener != null)
+                            mLockListener.isLocked(mDevice, 
+                                    (response[1] == DEVICE_LOCKED_RESPONSE));
+//                        else // sanity check
+//                            assert (response[1] == DEVICE_UNLOCKED_RESPONSE);
+                    } else {
+                        if (mWriteListener != null)
+                            mWriteListener.onWriteResponse(new String(response));
+                    }
+                    break;
                 } catch (IOException e) {
-                    attempt++;
+                    if (attempt < CONNECT_RETRY_TIMES) {
+                        ++attempt;
+                    } else {
+                        String error = 
+                                (attempt >= CONNECT_RETRY_TIMES) ? "Bad Response" : "Failed to write";
+                        if (mWriteListener != null) mWriteListener.onWriteError(error);
+                    }
                 }
             }
-            String error = (attempt >= CONNECT_RETRY_TIMES) ? "Bad Response" : "Failed to write";
-            mListener.onWriteError(error);
         }
+    }
+    
+    public interface OnConfigurationListener {
+        /**
+         * Callback to notify a client when configuration is received
+         * @param config
+         *            the configuration received from Bluetooth device, null if failure
+         */
+        public void onConfigurationRead(DeviceConfiguration config);
+    }
+
+    public interface OnWriteFeedbackListener {
+        /**
+         * Callback to notify a client that socket failed to write to Bluetooth device
+         * @param error
+         *            a string description of the failure
+         */
+        public void onWriteError(String error);  
+        
+        /**
+         * Callback to notify a client that writing was successful, and responded with
+         * the given message
+         * @param response  the response from the device written to
+         */
+        public void onWriteResponse(String response);
+    }
+
+    public interface OnLockQueryListener {
+        /**
+         * Callback to notify a client whether a device is unlocked or not
+         * @param status  true is device is locked, false otherwise
+         * @return  true if device is locked, false otherwise
+         */
+        public void isLocked(BluetoothDevice device, boolean status);
     }
 }

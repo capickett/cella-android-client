@@ -69,12 +69,19 @@ public class DeviceConfiguration {
      * @see DeviceConfiguration(String config)
      * @return
      */
-    public byte[] configBytes() {
+    public byte[] getBytes() {
         ByteBuffer buf = ByteBuffer.allocate(STRUCT_SIZE);
         for (String configOption : mConfigurations.keySet()) {
             buf.put(mConfigurations.get(configOption).getBytes());
         }
         return buf.array();
+    }
+    
+    /**
+     * @return the length of the configuration in bytes
+     */
+    public int size() {
+        return STRUCT_SIZE;
     }
 
     /**

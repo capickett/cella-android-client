@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
@@ -48,6 +49,7 @@ public class Connection {
     
     private OnWriteFeedbackListener     mWriteListener;
     private OnConfigurationListener     mConfigListener;
+    private OnLockQueryListener         mLockListener;
     
     /**
      * Construct a new connection over the given socket The socket must be
@@ -101,7 +103,7 @@ public class Connection {
      */
     public void getConfiguration() {
         if (mConfig != null)
-            mConfigListener.onConfigurationRead(mConfig);
+            if (mConfigListener != null) mConfigListener.onConfigurationRead(mConfig);
         else
             if (sPool.isShutdown()) {
                 Log.e("MainActivity", "sPool is shutdown");
@@ -115,7 +117,8 @@ public class Connection {
     public void sendConfiguration() {
         ByteBuffer message = ByteBuffer.wrap(new byte[]{CONFIG_REQUEST_BYTE});
         message.put(mConfig.configBytes());
-        sPool.execute(new WriteThread(message.array(), mWriteListener));
+        sPool.execute(new WriteThread(message.array(),
+                mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
     }
     
     /**
@@ -133,7 +136,8 @@ public class Connection {
         byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
         message[0] = PASSWD_REQUEST_BYTE;
         System.arraycopy(passwd.getBytes(), 0, message, 1, passwd.length());
-        sPool.execute(new WriteThread(message, mWriteListener));
+        sPool.execute(new WriteThread(message,
+                mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
     }
 
     /**
@@ -202,34 +206,45 @@ public class Connection {
     }
     
     private class WriteThread implements Runnable {
-        private final String WRITE_RESPONSE_OKAY     = "K";
-        private final int    WRITE_RESPONSE_LENGTH   = 1;
-        private final int    CONNECT_RETRY_TIMES     = 2;
-
-        private byte[]            mMessage;      
-        private OnWriteFeedbackListener     mListener;
+        private final int    MAX_WRITE_RESPONSE_LENGTH = 2;
+        private final int    CONNECT_RETRY_TIMES       = 2;
+        
+        private final byte   WRITE_RESPONSE_OKAY       = 'K';
+        private final byte   DEVICE_UNLOCKED_RESPONSE  = 'U';
+        private final byte   DEVICE_LOCKED_RESPONE     = 'L';
+        
+        private byte[]                      mMessage;
+        private BluetoothDevice             mDevice;
+        private OnWriteFeedbackListener     mWriteListener;
+        private OnLockQueryListener         mLockListener;
         
         public WriteThread(byte[] message, 
-                OnWriteFeedbackListener listener) {
-            mWriteListener = listener;
-            mMessage  = message;
+                BluetoothDevice device,
+                OnWriteFeedbackListener wlistener,
+                OnLockQueryListener llistener) {
+            mDevice        = device;
+            mWriteListener = wlistener;
+            mLockListener  = llistener;
+            mMessage       = message;
         }
         public void run() {
             int attempt = 0;
             while (attempt < CONNECT_RETRY_TIMES) {
                 try {
                     mOutputStream.write(mMessage);
-                    byte[] response = new byte[WRITE_RESPONSE_LENGTH];
+                    byte[] response = new byte[MAX_WRITE_RESPONSE_LENGTH];
                     mInputStream.read(response);
                     
                     if (!(new String(response)).equals(WRITE_RESPONSE_OKAY)) {
                         throw new IOException("Bad response");
                     }
                     if (response[0] == LOCK_STATE_QUERY_BYTE) {
-                        // LOCK STATE LISTENER
+                        if (mLockListener != null)
+                            mLockListener.isLocked(mDevice, 
+                                    (response[1] == DEVICE_UNLOCKED_RESPONSE));
                     } else {
-                        if (mListener != null)
-                            mListener.onWriteResponse(new String(response));
+                        if (mWriteListener != null)
+                            mWriteListener.onWriteResponse(new String(response));
                     }
                     break;
                 } catch (IOException e) {
@@ -238,7 +253,7 @@ public class Connection {
                     } else {
                         String error = 
                                 (attempt >= CONNECT_RETRY_TIMES) ? "Bad Response" : "Failed to write";
-                        if (mListener != null) mListener.onWriteError(error);
+                        if (mWriteListener != null) mWriteListener.onWriteError(error);
                     }
                 }
             }
@@ -262,10 +277,20 @@ public class Connection {
          */
         public void onWriteError(String error);  
         
+        /**
+         * Callback to notify a client that writing was successful, and responded with
+         * the given message
+         * @param response  the response from the device written to
+         */
         public void onWriteResponse(String response);
     }
     
     public interface OnLockQueryListener {
-        public boolean isLocked();
+        /**
+         * Callback to notify a client whether a device is unlocked or not
+         * @param status  true is device is unlocked, false otherwise
+         * @return  true if device is unlocked, false otherwise
+         */
+        public void isLocked(BluetoothDevice device, boolean status);
     }
 }

@@ -51,6 +51,19 @@ public class Drive implements Parcelable {
     public String getAddress() { return mDevice.getAddress(); }
     public BluetoothDevice getDevice() { return mDevice; }
 
+    
+    @Override
+    public boolean equals(Object o) {
+        return (o.getClass().equals(this.getClass()) &&
+                ((Drive) o).getAddress().equals(this.getAddress()) &&
+                ((Drive) o).getName().equals(this.getName()));
+
+    }
+    @Override
+    public int hashCode() {
+        return 37 * mDevice.hashCode() + 7 * mName.hashCode();
+    }
+
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(mName);

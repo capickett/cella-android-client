@@ -63,6 +63,7 @@ public class DriveConnectFragment extends Fragment implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+        mBT = new BluetoothUtility(getActivity());
     }
 
     /*
@@ -139,16 +140,19 @@ public class DriveConnectFragment extends Fragment implements
     }
 
     private void startBluetoothScan() {
-        mBT = new BluetoothUtility(getActivity());
+//        mBT = new BluetoothUtility(getActivity());
         
         mBT.setOnDiscoveryListener(new OnDiscoveryListener() {
             @Override
-            public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
+            public void onDiscovery(BluetoothDevice device) {
                 assert (mBondedMap != null);
-                for (BluetoothDevice dev : bluetoothDevices)
-                    if (!mBondedMap.containsKey(dev.getAddress()))
-                        mDeviceListItems.add(new Drive(dev.getName(), dev));
+                Drive drive = new Drive(device.getName(), device);
+                if (!mBondedMap.containsKey(device) && !mDeviceListItems.contains(drive))
+                    mDeviceListItems.add(drive);
                 mDeviceListAdapter.clear();
+                Log.e("Foo", "Discovered device: " + device.toString());
+                Log.e("Foo", "mDeviceListAdapter item count: " + mDeviceListAdapter.getCount());
+                Log.e("Foo", "mDeviceListItems item count: " + mDeviceListItems.size());
                 mDeviceListAdapter.addAll(mDeviceListItems);
                 mDeviceListAdapter.notifyDataSetChanged();
             }

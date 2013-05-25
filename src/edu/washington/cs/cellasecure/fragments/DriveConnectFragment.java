@@ -147,12 +147,9 @@ public class DriveConnectFragment extends Fragment implements
             public void onDiscovery(BluetoothDevice device) {
                 assert (mBondedMap != null);
                 Drive drive = new Drive(device.getName(), device);
-                if (!mBondedMap.containsKey(device) && !mDeviceListItems.contains(drive))
+                if (!mBondedMap.containsKey(device))
                     mDeviceListItems.add(drive);
                 mDeviceListAdapter.clear();
-                Log.e("Foo", "Discovered device: " + device.toString());
-                Log.e("Foo", "mDeviceListAdapter item count: " + mDeviceListAdapter.getCount());
-                Log.e("Foo", "mDeviceListItems item count: " + mDeviceListItems.size());
                 mDeviceListAdapter.addAll(mDeviceListItems);
                 mDeviceListAdapter.notifyDataSetChanged();
             }

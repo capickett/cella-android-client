@@ -16,11 +16,11 @@
 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item
-        android:state_checked="true"
-        android:drawable="@drawable/device_access_secure"/>
+    <item android:state_checked="true">
+        <bitmap android:gravity="center" android:src="@drawable/device_access_secure"/>
+    </item>
 
-    <item
-        android:state_checked="false"
-        android:drawable="@drawable/device_access_not_secure"/>
+    <item android:state_checked="false">
+        <bitmap android:gravity="center" android:src="@drawable/device_access_not_secure"/>
+    </item>
 </selector>

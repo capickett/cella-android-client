@@ -16,19 +16,35 @@
 
 package edu.washington.cs.cellasecure;
 
+import android.app.Activity;
 import android.app.ListActivity;
+import android.bluetooth.BluetoothDevice;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.BaseAdapter;
 import android.widget.ListAdapter;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
+import edu.washington.cs.cellasecure.storage.DeviceUtils;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class DriveListActivity extends ListActivity {
 
-    private static class DriveListAdapter extends BaseAdapter implements ListAdapter {
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+        setContentView(R.layout.activity_drive_list);
+
+        ListAdapter adapter = new DriveListAdapter();
+
+        setListAdapter(adapter);
+    }
+
+    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener {
 
         // load paired devices and add to list
         // then, scan over bluetooth and add pairable devices
@@ -40,38 +56,91 @@ public class DriveListActivity extends ListActivity {
         //                    "+" icon is shown instead of lock status
         // Out of range + paired: text is grayed out, in a "disabled" state
 
-        private Set<Drive> mPairedDrives = new HashSet<Drive>();
-        private Set<Drive> mInRangeDrives = new HashSet<Drive>();
 
+        private Activity mActivity = DriveListActivity.this;
+        private Set<Drive> mPairedInRangeDrives = new HashSet<Drive>();
+        private Set<Drive> mInRangeDrives = new HashSet<Drive>();
+        private Set<Drive> mPairedOutOfRangeDrives = new HashSet<Drive>();
+
+        public DriveListAdapter() {
+            new PairedDrivesLoadTask().execute();
+        }
+
+        private Set<Drive> chooseSet(int position) {
+
+            if (position > threshold2)
+                return mPairedOutOfRangeDrives;
+            else if (position > threshold1)
+                return mInRangeDrives;
+            else
+                return mPairedInRangeDrives;
+        }
 
         @Override
         public int getCount() {
-            return 0;
+            return mPairedInRangeDrives.size() + mInRangeDrives.size() + mPairedOutOfRangeDrives.size();
         }
 
         @Override
         public Object getItem(int position) {
-            return null;
+            int threshold1 = mPairedInRangeDrives.size();
+            int threshold2 = threshold1 + mInRangeDrives.size();
+            if (position >= threshold2)
+                return mPairedOutOfRangeDrives.toArray()[position - threshold2];
+            else if (position >= threshold1)
+                return mInRangeDrives.toArray()[position - threshold1];
+            else
+                return mPairedInRangeDrives.toArray()[position];
         }
 
         @Override
         public long getItemId(int position) {
-            return 0;
+            return 0; // TODO: Implement me
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            return null;
+            return null; // TODO: Implement me
+        }
+
+        @Override
+        public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
+            for (BluetoothDevice dev : bluetoothDevices) {
+                boolean added = false;
+                for (Drive drive : mPairedOutOfRangeDrives) {
+                    if (drive.getDevice().equals(dev)) {
+                        mPairedOutOfRangeDrives.remove(drive);
+                        mPairedInRangeDrives.add(drive);
+                        added = true;
+                        break;
+                    }
+                }
+                if (!added)
+                    mInRangeDrives.add(new Drive(dev.getName(), dev));
+            }
+
+            notifyDataSetChanged();
+        }
+
+        private class PairedDrivesLoadTask extends AsyncTask<Void, Void, Map<String, String>> {
+
+            private DriveListAdapter mAdapter = DriveListAdapter.this;
+
+            @Override
+            protected Map<String, String> doInBackground(Void... args) {
+                return DeviceUtils.fileToMap(mActivity);
+            }
+
+            @Override
+            protected void onPostExecute(Map<String, String> pairedDevices) {
+                for (Map.Entry<String, String> e : pairedDevices.entrySet())
+                    mPairedOutOfRangeDrives.add(new Drive(e.getValue(), e.getKey()));
+                mAdapter.notifyDataSetChanged();
+                BluetoothUtility bt = new BluetoothUtility(mActivity);
+                bt.setOnDiscoveryListener(mAdapter);
+                bt.scanForDevices();
+            }
         }
     }
 
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        setContentView(R.layout.activity_drive_list);
-
-        ListAdapter adapter = new DriveListAdapter();
-
-        setListAdapter(adapter);
-    }
 }

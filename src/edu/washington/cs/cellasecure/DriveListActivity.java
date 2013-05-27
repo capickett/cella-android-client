@@ -23,6 +23,9 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ListAdapter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class DriveListActivity extends ListActivity {
 
     private static class DriveListAdapter extends BaseAdapter implements ListAdapter {
@@ -36,6 +39,9 @@ public class DriveListActivity extends ListActivity {
         // Pairable:          text is black, in an "enabled" state
         //                    "+" icon is shown instead of lock status
         // Out of range + paired: text is grayed out, in a "disabled" state
+
+        private Set<Drive> mPairedDrives = new HashSet<Drive>();
+        private Set<Drive> mInRangeDrives = new HashSet<Drive>();
 
 
         @Override

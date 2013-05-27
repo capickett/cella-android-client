@@ -27,7 +27,8 @@
         android:id="@android:id/list"
         android:layout_weight="1"
         android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp"/>
+        android:layout_marginRight="16dp"
+        tools:listitem="@layout/list_drive"/>
 
     <fragment
         android:id="@android:id/empty"

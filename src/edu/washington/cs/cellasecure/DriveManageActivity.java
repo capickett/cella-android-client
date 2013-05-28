@@ -16,6 +16,8 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.util.Map;
+
 import android.app.ActionBar;
 import android.app.ActionBar.OnNavigationListener;
 import android.app.Activity;
@@ -24,6 +26,7 @@ import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -33,8 +36,6 @@ import android.widget.ProgressBar;
 import edu.washington.cs.cellasecure.fragments.DriveManageFragment;
 import edu.washington.cs.cellasecure.fragments.DriveNoDevicesFragment;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
-
-import java.util.Map;
 
 public class DriveManageActivity extends Activity implements
         OnNavigationListener {
@@ -48,7 +49,7 @@ public class DriveManageActivity extends Activity implements
         setContentView(R.layout.activity_drive_manage);
 
         mDriveLoadingProgress = (ProgressBar) findViewById(R.id.drive_loading_progress);
-        mDropDownAdapter = new ArrayAdapter<Drive>(this, android.R.id.text1);
+        mDropDownAdapter = new ArrayAdapter<Drive>(this, android.R.layout.simple_list_item_1);
         new LoadDevicesTask().execute();
     }
 
@@ -129,7 +130,7 @@ public class DriveManageActivity extends Activity implements
                 actionBar.setListNavigationCallbacks(mDropDownAdapter, mActivity);
                 actionBar.setDisplayShowTitleEnabled(false);
                 for (Map.Entry<String, String> e : result.entrySet())
-                    mDropDownAdapter.add(new Drive(e.getKey(), e.getValue()));
+                    mDropDownAdapter.add(new Drive(e.getValue(), e.getKey()));
                 actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
                 actionBar.setSelectedNavigationItem(0);
                 Bundle args = new Bundle();
@@ -140,6 +141,7 @@ public class DriveManageActivity extends Activity implements
             transaction.replace(R.id.drive_manage_fragment_container, frag);
             mDriveLoadingProgress.setVisibility(View.GONE);
             transaction.commit();
+            Log.e("Foo", "After transaction commit");
         }
     }
 

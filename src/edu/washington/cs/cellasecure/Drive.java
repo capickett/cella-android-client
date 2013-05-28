@@ -48,6 +48,7 @@ public class Drive implements Parcelable {
     @Override
     public String toString() { return mName; }
     public String getName() { return mName; }
+    public String getAddress() { return mDevice.getAddress(); }
     public BluetoothDevice getDevice() { return mDevice; }
 
     @Override

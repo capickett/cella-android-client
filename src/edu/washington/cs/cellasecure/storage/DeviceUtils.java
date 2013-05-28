@@ -16,8 +16,6 @@
 
 package edu.washington.cs.cellasecure.storage;
 
-import android.content.Context;
-
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,20 +23,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import android.content.Context;
+import android.util.Log;
+
 public class DeviceUtils {
     private static final String mFilename = "address_to_name_map.dat";
 
     // mapToFile
     public static void mapToFile(Context context, Map<String, String> addrNameMap) throws IOException {
         FileOutputStream outputStream;
-
-        outputStream = context.openFileOutput(mFilename, Context.MODE_PRIVATE);
-        for (Map.Entry<String, String> e : addrNameMap.entrySet()) {
-            String line = e.getKey() + "\t" + e.getValue() + "\n";
-            outputStream.write(line.getBytes());
+        if (addrNameMap != null) {
+            outputStream = context.openFileOutput(mFilename, Context.MODE_PRIVATE);
+            for (Map.Entry<String, String> e : addrNameMap.entrySet()) {
+                String line = e.getKey() + "\t" + e.getValue() + "\n";
+                outputStream.write(line.getBytes());
+            }
+            outputStream.close();
         }
-        outputStream.close();
-
     }
 
     // fileToMap
@@ -57,6 +58,7 @@ public class DeviceUtils {
         } catch (FileNotFoundException fnfe) {
             fnfe.printStackTrace();
         }
+        Log.e("Foo", "fileToMap: " + addrNameMap.toString());
         return addrNameMap;
     }
 

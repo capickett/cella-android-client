@@ -18,7 +18,6 @@ package edu.washington.cs.cellasecure.fragments;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,12 +26,10 @@ import android.widget.Button;
 import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.OnConnectListener;
 import edu.washington.cs.cellasecure.bluetooth.Connection;
-import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 
-import java.util.List;
-
-public class DriveUnlockFragment extends Fragment implements View.OnClickListener, BluetoothUtility.BluetoothListener {
+public class DriveUnlockFragment extends Fragment implements View.OnClickListener {
 
     private BluetoothUtility mBT;
     private Button mLockStatus;
@@ -77,8 +74,16 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         } else {
             mLockStatus.setText(R.string.device_manage_lock_status_unlocked);
         }
-        mBT = new BluetoothUtility(activity, this);
+        mBT = new BluetoothUtility(activity);
+
+        mBT.setOnConnectListener(new OnConnectListener() {
+            public void onConnected (Connection connection) {
+                mConnection = connection;
+            }
+        });
+        
         mBT.connect(mDrive.getDevice());
+
     }
 
     @Override
@@ -88,23 +93,5 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
                 mConnection.sendPassword("12345678");
             }
         }
-    }
-
-    @Override
-    public void onConnected(BluetoothDevice device, Connection connection) {
-        mConnection = connection;
-    }
-
-    @Override
-    public void onDiscovery(List<BluetoothDevice> bluetoothDevices) { /* Do nothing */ }
-
-    @Override
-    public void onConfigurationRead(DeviceConfiguration config) {
-
-    }
-
-    @Override
-    public void onWriteError(String error) {
-
     }
 }

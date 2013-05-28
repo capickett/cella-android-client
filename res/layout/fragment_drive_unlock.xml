@@ -15,14 +15,20 @@
     the License.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent" android:gravity="center_vertical">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
+    android:orientation="vertical" >
 
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:id="@+id/fragment_drive_unlock_status" android:layout_gravity="center"
-            android:textSize="64sp" android:text="@string/device_manage_lock_status_locked" android:textStyle="bold"/>
+    <Button
+        android:id="@+id/fragment_drive_unlock_status"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/device_manage_lock_status_locked"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textSize="64sp"
+        android:textStyle="bold" />
+
 </LinearLayout>

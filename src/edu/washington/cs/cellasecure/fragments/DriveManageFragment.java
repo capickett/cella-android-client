@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,7 +39,7 @@ public class DriveManageFragment extends Fragment {
     private Drive mCurrentDrive;
 
     private TextView mLockStatusIndicator;
-
+    
     /*
      * (non-Javadoc)
      * 
@@ -48,8 +49,11 @@ public class DriveManageFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_drive_manage, container,
+        Log.e("Foo", "Before inflater");
+        View v = inflater.inflate(R.layout.fragment_drive_manage, container,
                 false);
+        Log.e("Foo", "After inflater");
+        return v;
     }
 
     /*
@@ -60,7 +64,6 @@ public class DriveManageFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-
         // Save the drive which details are being displayed
         outState.putParcelable(STATE_DRIVE_KEY, mCurrentDrive);
     }

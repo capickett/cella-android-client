@@ -22,6 +22,7 @@ import java.util.UUID;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.OnConnectListener;
 
 /**
  * Connection thread for asynchronously establishing a socket with a Bluetooth
@@ -29,25 +30,23 @@ import android.bluetooth.BluetoothSocket;
  * 
  * @author CellaSecure
  */
-public class ConnectionThread implements Runnable {
+class ConnectionThread implements Runnable {
     private BluetoothAdapter    mAdapter;      // Bluetooth adapter for managing all communication
     private BluetoothDevice     mDevice;       // Bluetooth device to connect to
     private UUID                mUUID;         // UUID for connecting to Bluetooth device
-    private OnConnectListener   mListener;     // listener to return conneciton status to client
+    private OnConnectListener   mListener;     // Listener to notify client when connection completes
+    
     /*
      * Initialize necessary information for a new connection thread
      */
     public ConnectionThread(BluetoothDevice device,
                             BluetoothAdapter adapter,
-                            UUID uuid){
+                            UUID uuid,
+                            OnConnectListener cl) {
         mDevice   = device;
         mAdapter  = adapter;
         mUUID     = uuid;
-        mListener = null;
-    }
-    
-    public void setOnConnectListener(OnConnectListener listener) {
-        mListener = listener;
+        mListener = cl;
     }
 
     @Override
@@ -56,20 +55,12 @@ public class ConnectionThread implements Runnable {
         try {
             BluetoothSocket socket = mDevice.createRfcommSocketToServiceRecord(mUUID);
             socket.connect();
-            if (mListener != null) mListener.onConnected(mDevice, new Connection(socket));
+            if (mListener != null) mListener.onConnected(new Connection(socket));
         } catch (IOException e) {
             // e.printStackTrace();
             return;
         }
     }
     
-    public interface OnConnectListener {
-        /**
-         * Callback to return an established connection
-         * 
-         * @param connection
-         *            the connection to the Bluetooth device
-         */
-        public void onConnected(BluetoothDevice device, Connection connection);
-    }
+
 }

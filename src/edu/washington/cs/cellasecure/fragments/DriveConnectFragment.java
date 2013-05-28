@@ -16,16 +16,19 @@
 
 package edu.washington.cs.cellasecure.fragments;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -39,17 +42,17 @@ import android.widget.ListView;
 import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
-import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.BluetoothListener;
-import edu.washington.cs.cellasecure.bluetooth.Connection;
-import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.OnDiscoveryListener;
+import edu.washington.cs.cellasecure.storage.DeviceUtils;
 
 public class DriveConnectFragment extends Fragment implements
-        OnItemClickListener, BluetoothListener {
+        OnItemClickListener {
 
-    private ListView mDeviceList;
+    private ListView            mDeviceList;
     private ArrayAdapter<Drive> mDeviceListAdapter;
-    private Set<Drive> mDeviceListItems = new HashSet<Drive>();
-    private BluetoothUtility mBT;
+    private Set<Drive>          mDeviceListItems     = new HashSet<Drive>();
+    private Map<String, String> mBondedMap           = null;
+    private BluetoothUtility    mBT;
 
     /*
      * (non-Javadoc)
@@ -98,7 +101,10 @@ public class DriveConnectFragment extends Fragment implements
         Activity activity = getActivity();
         mDeviceListAdapter = new ArrayAdapter<Drive>(activity,
                 android.R.layout.simple_list_item_1);
-        startBluetoothScan();
+        
+        
+        
+        new LoadDevicesTask(getActivity()).execute();
 
         mDeviceList = (ListView) activity.findViewById(R.id.drive_connect_list);
         mDeviceList.setAdapter(mDeviceListAdapter);
@@ -114,7 +120,7 @@ public class DriveConnectFragment extends Fragment implements
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.menu_refresh_devices:
-            startBluetoothScan();
+            new LoadDevicesTask(getActivity()).execute();
             return true;
         default:
             return false;
@@ -133,7 +139,20 @@ public class DriveConnectFragment extends Fragment implements
     }
 
     private void startBluetoothScan() {
-        mBT = new BluetoothUtility(getActivity(), this);
+        mBT = new BluetoothUtility(getActivity());
+        
+        mBT.setOnDiscoveryListener(new OnDiscoveryListener() {
+            @Override
+            public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
+                assert (mBondedMap != null);
+                for (BluetoothDevice dev : bluetoothDevices)
+                    if (!mBondedMap.containsKey(dev.getAddress()))
+                        mDeviceListItems.add(new Drive(dev.getName(), dev));
+                mDeviceListAdapter.clear();
+                mDeviceListAdapter.addAll(mDeviceListItems);
+                mDeviceListAdapter.notifyDataSetChanged();
+            }
+        });
 
         if (!mBT.isEnabled())
             mBT.enableBluetooth();
@@ -152,41 +171,63 @@ public class DriveConnectFragment extends Fragment implements
     public void onItemClick(AdapterView<?> parent, View view, int position,
             long id) {
         Drive selectedDrive = (Drive) parent.getItemAtPosition(position);
-        
+
+        Log.e("Foo", "in onItemClick");
+        mBondedMap.put(selectedDrive.getAddress(), selectedDrive.getName());
+        Log.e("Foo", "Map: " + mBondedMap.toString());
+        new WriteDeviceTask(getActivity(), mBondedMap).execute();
         // TODO: Add device to stored list
-        getActivity().finish();
     }
-
-    @Override
-    public void onConnected(BluetoothDevice device, Connection connection) {
-        /* We will not connect in this fragment, only pair */
-    }
-
-    @Override
-    public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
-        for (BluetoothDevice dev : bluetoothDevices)
-            if (!mBT.getBondedDevices().contains(dev))
-                mDeviceListItems.add(new Drive(dev.getName(), dev));
-        mDeviceListAdapter.clear();
-        mDeviceListAdapter.addAll(mDeviceListItems);
-        mDeviceListAdapter.notifyDataSetChanged();
-    }
-
-    @Override
-    public void onConfigurationRead(DeviceConfiguration config) { }
-
-    @Override
-    public void onWriteError(String error) { }
 
     @Override
     public void onPause() {
         super.onPause();
-        mBT.onPause();
+        if (mBT != null) mBT.onPause();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        mBT.onResume();
+        if (mBT != null) mBT.onResume();
+    }
+    
+    private class LoadDevicesTask extends AsyncTask<Void, Void, Map<String, String>> {
+        private Activity mActivity;
+        
+        public LoadDevicesTask (Activity activity) {
+            mActivity = activity;
+        }
+        
+        protected Map<String, String> doInBackground(Void... params) {
+            return DeviceUtils.fileToMap(mActivity);
+        }
+        
+        protected void onPostExecute(Map<String, String> result) {
+            mBondedMap = result;
+            startBluetoothScan();
+        }
+    }
+    
+    private class WriteDeviceTask extends AsyncTask<Void, Void, Void> {
+        private Activity mActivity;
+        private Map<String, String> mMap;
+        
+        public WriteDeviceTask (Activity activity, Map<String, String> addrMap) {
+            mActivity = activity;
+            mMap      = addrMap;
+        }
+
+        protected Void doInBackground(Void... params) {
+            try {
+                DeviceUtils.mapToFile(mActivity, mMap);
+            } catch (IOException e) {
+                /* fail! */
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void params) {
+            mActivity.finish();
+        }
     }
 }

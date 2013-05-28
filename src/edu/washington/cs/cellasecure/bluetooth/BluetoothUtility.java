@@ -48,6 +48,7 @@ public class BluetoothUtility {
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
 
     private OnDiscoveryListener   mDiscoveryListener;   // Listener to handle device discovery
+    private OnDiscoveryFinishedListener mDiscoveryFinishedListener; // Listener to handle discovery finished
     private OnConnectListener     mConnectListener;     // Listener to handle connections
     
     /**
@@ -55,8 +56,6 @@ public class BluetoothUtility {
      * 
      * @param activity
      *            Context for mobile application
-     * @param callbacks
-     *            Client callbacks for receiving notifications
      */
     public BluetoothUtility(Activity activity) {
         mActivity = activity;
@@ -69,11 +68,14 @@ public class BluetoothUtility {
         mBroadcastReceiver = new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
-                if (action.equals(BluetoothDevice.ACTION_FOUND)) {
+                if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     mDiscoveredDevices.add(device);
                     if (mDiscoveryListener != null)
                         mDiscoveryListener.onDiscovery(getDiscoveredDevices());
+                } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                    if (mDiscoveryFinishedListener != null)
+                        mDiscoveryFinishedListener.onDiscoveryFinished();
                 }
             }
         };
@@ -85,7 +87,7 @@ public class BluetoothUtility {
      * Start a discovery for in-range Bluetooth devices, scanning
      * for at most 12 seconds.  When a device is found will call
      * onDiscovery with an updated list of found devices.
-     * @see BluetoothListener
+     * @see OnDiscoveryListener
      */
     public void scanForDevices() {
         if (!mBluetoothAdapter.isEnabled())
@@ -102,14 +104,8 @@ public class BluetoothUtility {
     }
     
     /**
-     * Returns an intent to be used by the Activity using this library
-     * Ex.
-     *      BluetoothUtility util = new BluetoothUtility(this);
-     *      if (!util.isEnabled()) 
-     *          startActivityForResult(enableBluetooth(), REQUEST_ENABLE_BT);
+     * ENables bluetooth via ACTION_REQUEST_ENABLE intent
      *
-     * @return an Intent to be used in "startActivityForResult" to request
-     * Bluetooth to be enabled
      */
     public void enableBluetooth() {
         Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -194,7 +190,7 @@ public class BluetoothUtility {
      * 
      * @param device
      *            the Bluetooth device to unpair from
-     * @returns true if already unpaired or on successful unpairing, else false
+     * @return true if already unpaired or on successful unpairing, else false
      */
     public boolean unpairDevice(BluetoothDevice device) {
         switch (device.getBondState()) {
@@ -247,6 +243,10 @@ public class BluetoothUtility {
         mConnectListener = cl;
     }
 
+    public void setOnDiscoveryFinishedListener(OnDiscoveryFinishedListener dfl) {
+        this.mDiscoveryFinishedListener = dfl;
+    }
+
     /* Listener interfaces */
 
     public interface OnDiscoveryListener {
@@ -267,5 +267,12 @@ public class BluetoothUtility {
          *            the connection to the Bluetooth device
          */
         public void onConnected(Connection connection);
+    }
+
+    public interface OnDiscoveryFinishedListener {
+        /**
+         * Callback to notify a client when the discovery is finished
+         */
+        public void onDiscoveryFinished();
     }
 }

@@ -61,6 +61,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         super.onActivityCreated(savedInstanceState);
 
         Activity activity = getActivity();
+        activity.findViewById(R.id.drive_loading_progress).setVisibility(View.GONE);
         mLockStatus = (Button) activity.findViewById(R.id.fragment_drive_unlock_status);
         mLockStatus.setOnClickListener(this);
         mDriveUnlockView = (View) activity.findViewById(R.id.drive_manage_fragment_container);
@@ -74,7 +75,6 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         } else {
             mLockStatus.setText(R.string.device_manage_lock_status_unlocked);
         }
-        mConnection = new Connection(mDrive.getDevice());
     }
 
     @Override

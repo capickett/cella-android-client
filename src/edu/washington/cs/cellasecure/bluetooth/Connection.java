@@ -19,11 +19,9 @@ package edu.washington.cs.cellasecure.bluetooth;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
@@ -34,7 +32,6 @@ import android.util.Log;
  * @author CellaSecure
  */
 public class Connection {
-    private static final UUID   mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     
     @Override
     public String toString() {
@@ -71,23 +68,18 @@ public class Connection {
      * @throws IllegalArgumentException
      *             if socket is null
      */
-    public Connection(BluetoothDevice device) {
-        if (device == null)
-            throw new IllegalArgumentException ("Device must be non-null");
-        try {
-            mBluetoothSocket = device.createRfcommSocketToServiceRecord(mUUID);
-        } catch (IOException e) {
-            // pass
-        }
+    public Connection(BluetoothSocket socket) {
+        if (!socket.isConnected())
+            throw new IllegalArgumentException ("Socket must be connected");
+        mBluetoothSocket = socket;
         
         InputStream is = null;
         OutputStream os = null;
-        if (mBluetoothSocket != null) {
-            try {
-                is = mBluetoothSocket.getInputStream();
-                os = mBluetoothSocket.getOutputStream();
-            } catch (Exception e) { /* streams remain null */ }
-        }
+        try {
+            is = mBluetoothSocket.getInputStream();
+            os = mBluetoothSocket.getOutputStream();
+        } catch (Exception e) { /* streams remain null */ }
+
         mInputStream = is;
         mOutputStream = os;
 
@@ -236,8 +228,6 @@ public class Connection {
         private final byte   DEVICE_LOCKED_RESPONSE    = 'L';
                 
         private byte[]                      mMessage;
-        private BluetoothDevice             mDevice;
-        private BluetoothSocket             mSocket;
         private OnConfigurationListener     mConfigListener;
         private OnWriteFeedbackListener     mWriteListener;
         private OnLockQueryListener         mLockListener;
@@ -247,8 +237,6 @@ public class Connection {
                 OnConfigurationListener clistener,
                 OnWriteFeedbackListener wlistener,
                 OnLockQueryListener llistener) {
-            mSocket        = socket;
-            mDevice        = socket.getRemoteDevice();
             mWriteListener = wlistener;
             mLockListener  = llistener;
             mMessage       = message;
@@ -256,43 +244,35 @@ public class Connection {
 
         public void run() {
             int attempt = 0;
-            try {
-                Log.e("Foo", "Connection: attempting to connect");
-                mSocket.connect();
-                while (attempt < CONNECT_RETRY_TIMES) {
-                    try {
-                        Log.e("Foo", "Connection: " + new String(mMessage));
-                        mOutputStream.write(mMessage);
-                        byte[] response = new byte[MAX_WRITE_RESPONSE_LENGTH];
-                        mInputStream.read(response);
-                        Log.e("Foo", "response: " + new String(response));
-                        if (response[0] == LOCK_RESPONSE_OKAY) {
-                            if (mLockListener != null)
-                                mLockListener.isLocked(mDevice, 
-                                        (response[1] == DEVICE_LOCKED_RESPONSE));
-                        } else if (response[0] == WRITE_RESPONSE_OKAY) {
-                            if (mWriteListener != null)
-                                mWriteListener.onWriteResponse(new String(response));
-                        } else if (response[0] == CONFIG_RESPONSE_OKAY) {
-                            if (mConfigListener != null) {
-                                mConfigListener.onConfigurationRead(
-                                        new DeviceConfiguration((new String(response)).substring(1)));
-                            }
-                        }
-                        break;
-                    } catch (IOException e) {
-                        if (attempt < CONNECT_RETRY_TIMES) {
-                            ++attempt;
-                        } else {
-                            String error = 
-                                    (attempt >= CONNECT_RETRY_TIMES) ? "Bad Response" : "Failed to write";
-                            if (mWriteListener != null) mWriteListener.onWriteError(error);
+            while (attempt < CONNECT_RETRY_TIMES) {
+                try {
+                    Log.e("Foo", "Connection: " + new String(mMessage));
+                    mOutputStream.write(mMessage);
+                    byte[] response = new byte[MAX_WRITE_RESPONSE_LENGTH];
+                    mInputStream.read(response);
+                    Log.e("Foo", "response: " + new String(response));
+                    if (response[0] == LOCK_RESPONSE_OKAY) {
+                        if (mLockListener != null)
+                            mLockListener.isLocked(response[1] == DEVICE_LOCKED_RESPONSE);
+                    } else if (response[0] == WRITE_RESPONSE_OKAY) {
+                        if (mWriteListener != null)
+                            mWriteListener.onWriteResponse(new String(response));
+                    } else if (response[0] == CONFIG_RESPONSE_OKAY) {
+                        if (mConfigListener != null) {
+                            mConfigListener.onConfigurationRead(
+                                    new DeviceConfiguration((new String(response)).substring(1)));
                         }
                     }
+                    break;
+                } catch (IOException e) {
+                    if (attempt < CONNECT_RETRY_TIMES) {
+                        ++attempt;
+                    } else {
+                        String error = 
+                                (attempt >= CONNECT_RETRY_TIMES) ? "Bad Response" : "Failed to write";
+                        if (mWriteListener != null) mWriteListener.onWriteError(error);
+                    }
                 }
-                mSocket.close();
-            } catch (IOException e) {
-                // failed to connect
             }
         }
     }
@@ -328,6 +308,6 @@ public class Connection {
          * @param status  true is device is locked, false otherwise
          * @return  true if device is locked, false otherwise
          */
-        public void isLocked(BluetoothDevice device, boolean status);
+        public void isLocked(boolean status);
     }
 }

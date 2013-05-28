@@ -16,12 +16,18 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.io.IOException;
+import java.util.UUID;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.os.Parcel;
 import android.os.Parcelable;
+import edu.washington.cs.cellasecure.bluetooth.Connection;
 
 public class Drive implements Parcelable {
+    private static final UUID   mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     public static final String KEY_BUNDLE_DRIVE = "drive";
     
@@ -38,6 +44,7 @@ public class Drive implements Parcelable {
 
     private String mName;
     private BluetoothDevice mDevice;
+    private Connection mConnection;
     private boolean mLockStatus;
 
     
@@ -74,7 +81,12 @@ public class Drive implements Parcelable {
     public BluetoothDevice getDevice() { return mDevice; }
     public boolean isLocked() { return mLockStatus; }
     public void setLockStatus(boolean status) { mLockStatus = status; } 
-
+    public void setConnection(Connection c) { mConnection = c; }
+    
+    public void connect(OnConnectedListener cl) {
+        new ConnectThread(mDevice, cl).run();
+    }
+    
     
     @Override
     public int hashCode() {
@@ -102,6 +114,31 @@ public class Drive implements Parcelable {
         dest.writeString(mName);
         dest.writeParcelable(mDevice, flags);
         dest.writeValue((Boolean) mLockStatus);
+    }
+    
+    interface OnConnectedListener {
+        public void onConnected(Connection connection);
+    }
+    
+    private class ConnectThread implements Runnable {
+        private BluetoothDevice mDevice;
+        private OnConnectedListener mListener;
+        
+        public ConnectThread (BluetoothDevice device, OnConnectedListener cl) {
+            mDevice = device;
+            mListener = cl;
+        }
+        public void run() {
+            Connection c;
+            try {
+                BluetoothSocket socket = mDevice.createRfcommSocketToServiceRecord(mUUID);
+                socket.connect();
+                c = new Connection(socket);
+            } catch (IOException e) {
+                c = null;
+            }
+            mListener.onConnected(c);
+        }
     }
 
 }

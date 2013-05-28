@@ -36,10 +36,7 @@ import android.content.IntentFilter;
  * @author CellaSecure
  */
 public class BluetoothUtility {
-
     public static final int BLUETOOTH_REQUEST_ID = 1337;
-
-//    private static final UUID     mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private BluetoothAdapter      mBluetoothAdapter;    // Connection point for Bluetooth devices
     private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
@@ -47,8 +44,6 @@ public class BluetoothUtility {
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
 
     private OnDiscoveryListener   mDiscoveryListener;   // Listener to handle device discovery
-//    private OnConnectListener     mConnectListener;     // Listener to handle connections
-    
     private OnDiscoveryFinishedListener mDiscoveryFinishedListener; // Listener to handle discovery finished
 
     
@@ -94,8 +89,10 @@ public class BluetoothUtility {
      * @see OnDiscoveryListener
      */
     public void scanForDevices() {
-        if (!mBluetoothAdapter.isEnabled())
+        if (!mBluetoothAdapter.isEnabled()) {
             throw new IllegalStateException("Bluetooth must be enabled");
+        }
+        
         if (mBluetoothAdapter.isDiscovering()) mBluetoothAdapter.cancelDiscovery();
 
         if (mActivity != null) {

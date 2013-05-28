@@ -35,15 +35,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
-import android.widget.ToggleButton;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
-import edu.washington.cs.cellasecure.bluetooth.Connection;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
 
-public class DriveListActivity extends ListActivity {
+public class DriveListActivity extends ListActivity implements OnItemClickListener {
 
     private BluetoothUtility mBT;
     private MenuItem mMenuRefresh;
@@ -57,6 +57,8 @@ public class DriveListActivity extends ListActivity {
         setProgressBarIndeterminateVisibility(true);
         ListAdapter adapter = new DriveListAdapter();
 
+        getListView().setOnItemClickListener(this);
+        
         setListAdapter(adapter);
     }
 
@@ -104,10 +106,19 @@ public class DriveListActivity extends ListActivity {
                 // no-op
         }
     }
+    
+    @Override
+    public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
+        mBT.cancelDiscovery();
+        Drive d = (Drive) getListAdapter().getItem(position);
+        Intent i = new Intent(this, DriveManageActivity.class);
+        i.putExtra(Drive.KEY_BUNDLE_DRIVE, d);
+        startActivity(i);
+    }
 
     private class DriveListAdapter extends BaseAdapter implements 
         ListAdapter, BluetoothUtility.OnDiscoveryListener,
-        BluetoothUtility.OnDiscoveryFinishedListener, Connection.OnLockQueryListener {
+        BluetoothUtility.OnDiscoveryFinishedListener {
 
 
         private static final int VIEW_TYPE_PAIRED_INRANGE = 0;
@@ -165,14 +176,10 @@ public class DriveListActivity extends ListActivity {
                 case VIEW_TYPE_PAIRED_INRANGE:
                     ((TextView) v.findViewById(R.id.list_drive_name)).setText(d.getName());
                     ((TextView) v.findViewById(R.id.list_drive_address)).setText(d.getAddress());
-                    // FIXME: d.isLocked is unimplemented
-                    ((ToggleButton) v.findViewById(R.id.list_drive_lock_toggle)).setChecked(d.isLocked());
                     break;
                 case VIEW_TYPE_INRANGE:
                     ((TextView) v.findViewById(R.id.list_drive_name)).setText(d.getName());
                     ((TextView) v.findViewById(R.id.list_drive_address)).setText(d.getAddress());
-                    // TODO: replace ToggleButton with "+" new device button
-                    ((ToggleButton) v.findViewById(R.id.list_drive_lock_toggle)).setChecked(false);
                     break;
                 case VIEW_TYPE_PAIRED_OORANGE:
                     TextView tvDriveName = (TextView) v.findViewById(R.id.list_drive_name);
@@ -181,8 +188,6 @@ public class DriveListActivity extends ListActivity {
                     TextView tvDriveAddress = (TextView) v.findViewById(R.id.list_drive_address);
                     tvDriveAddress.setTextColor(Color.LTGRAY);
                     tvDriveAddress.setText(d.getAddress());
-                    // TODO: do something with lock status
-                    v.findViewById(R.id.list_drive_lock_toggle).setEnabled(false);
                     break;
             }
             return v;
@@ -220,9 +225,6 @@ public class DriveListActivity extends ListActivity {
             if (mPairedOutOfRangeDrives.remove(drive)) mPairedInRangeDrives.add(drive);
             else mInRangeDrives.add(drive);
 
-            Connection c = new Connection(device);
-            c.setOnLockQueryListener(this);
-            c.getLockStatus();
             notifyDataSetChanged();
         }
 
@@ -231,15 +233,6 @@ public class DriveListActivity extends ListActivity {
             mActivity.setProgressBarIndeterminateVisibility(false);
             mMenuRefresh.setVisible(true);
             mActivity.invalidateOptionsMenu();
-        }
-        
-        @Override
-        public void isLocked(BluetoothDevice device, boolean status) {
-            Drive drive = new Drive(device);
-            drive.setLockStatus(status);
-            mPairedInRangeDrives.add(drive);
-            
-            notifyDataSetChanged();
         }
 
         private class PairedDrivesLoadTask extends AsyncTask<Void, Void, Map<String, String>> {

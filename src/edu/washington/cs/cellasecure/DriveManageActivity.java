@@ -26,7 +26,6 @@ import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -120,7 +119,7 @@ public class DriveManageActivity extends Activity implements
             Fragment frag;
 
             assert actionBar != null;
-
+            result.clear();
             if (result.isEmpty()) {
                 frag = new DriveNoDevicesFragment();
                 actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
@@ -141,7 +140,6 @@ public class DriveManageActivity extends Activity implements
             transaction.replace(R.id.drive_manage_fragment_container, frag);
             mDriveLoadingProgress.setVisibility(View.GONE);
             transaction.commit();
-            Log.e("Foo", "After transaction commit");
         }
     }
 

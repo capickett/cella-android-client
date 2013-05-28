@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.util.Log;
 
 /**
  * Utility for managing and executing operations over a connection to a
@@ -33,6 +34,12 @@ import android.bluetooth.BluetoothSocket;
  */
 public class Connection {
     
+    @Override
+    public String toString() {
+        return "Connection [mConfig=" + mConfig + ", mBluetoothSocket=" + mBluetoothSocket + ", mInputStream=" + mInputStream + ", mOutputStream=" + mOutputStream + ", mWriteListener="
+                + mWriteListener + ", mConfigListener=" + mConfigListener + ", mLockListener=" + mLockListener + "]";
+    }
+
     private static final byte LOCK_STATE_QUERY_BYTE = '?';
     private static final byte CONFIG_REQUEST_BYTE   = 'g'; 
     private static final byte CONFIG_SEND_BYTE      = 'c';
@@ -126,10 +133,15 @@ public class Connection {
      *
      */
     public void sendPassword(String passwd) {
-        if (passwd.length() > PASSWD_MAX_LENGTH)
-            throw new IllegalArgumentException("password is too long");
-        sPool.execute(new WriteThread(cons(PASSWD_REQUEST_BYTE, passwd.getBytes()),
-                mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
+        if (mBluetoothSocket != null) {
+            if (passwd.length() > PASSWD_MAX_LENGTH)
+                throw new IllegalArgumentException("password is too long");
+            byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+            message[0] = PASSWD_REQUEST_BYTE;
+            System.arraycopy(passwd.getBytes(), 0, message, 1, passwd.length());
+            sPool.execute(new WriteThread(message,
+                    mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
+        }
     }
 
     /**
@@ -246,10 +258,12 @@ public class Connection {
             while (attempt < CONNECT_RETRY_TIMES) {
                 try {
                     mOutputStream.write(mMessage);
+                    Log.e("Foo", "Message: " + new String(mMessage));
                     byte[] response = new byte[MAX_WRITE_RESPONSE_LENGTH];
                     mInputStream.read(response);
-                    
+                    Log.e("Foo", "Response: " + new String(response));
                     if (!(new String(response)).equals(WRITE_RESPONSE_OKAY)) {
+                        Log.e("Foo", "Bad response");
                         throw new IOException("Bad response");
                     }
                     if (response[0] == LOCK_STATE_QUERY_BYTE) {

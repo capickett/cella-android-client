@@ -16,6 +16,10 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
@@ -31,11 +35,6 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class DriveListActivity extends ListActivity {
 
@@ -53,7 +52,8 @@ public class DriveListActivity extends ListActivity {
         setListAdapter(adapter);
     }
 
-    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener, BluetoothUtility.OnDiscoveryFinishedListener {
+    private class DriveListAdapter extends BaseAdapter implements 
+    ListAdapter, BluetoothUtility.OnDiscoveryListener, BluetoothUtility.OnDiscoveryFinishedListener {
 
 
         private static final int VIEW_TYPE_PAIRED_INRANGE = 0;
@@ -164,20 +164,12 @@ public class DriveListActivity extends ListActivity {
         }
 
         @Override
-        public void onDiscovery(List<BluetoothDevice> bluetoothDevices) {
-            for (BluetoothDevice dev : bluetoothDevices) {
-                boolean added = false;
-                for (Drive drive : mPairedOutOfRangeDrives) {
-                    if (drive.getDevice().equals(dev)) {
-                        mPairedOutOfRangeDrives.remove(drive);
-                        mPairedInRangeDrives.add(drive);
-                        added = true;
-                        break;
-                    }
-                }
-                if (!added)
-                    mInRangeDrives.add(new Drive(dev.getName(), dev));
-            }
+        public void onDiscovery(BluetoothDevice device) {
+            Drive drive = new Drive(device);
+            if (mPairedOutOfRangeDrives.remove(drive))
+                mPairedInRangeDrives.add(drive);
+            else 
+                mInRangeDrives.add(drive);
 
             notifyDataSetChanged();
         }

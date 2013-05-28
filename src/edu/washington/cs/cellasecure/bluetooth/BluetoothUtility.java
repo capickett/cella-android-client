@@ -72,7 +72,7 @@ public class BluetoothUtility {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     mDiscoveredDevices.add(device);
                     if (mDiscoveryListener != null)
-                        mDiscoveryListener.onDiscovery(getDiscoveredDevices());
+                        mDiscoveryListener.onDiscovery(device);
                 } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                     if (mDiscoveryFinishedListener != null)
                         mDiscoveryFinishedListener.onDiscoveryFinished();
@@ -256,7 +256,7 @@ public class BluetoothUtility {
          * @param bluetoothDevices
          *            the list of discovered Bluetooth devices
          */
-        public void onDiscovery(List<BluetoothDevice> bluetoothDevices);
+        public void onDiscovery(BluetoothDevice device);
     }
     
     public interface OnConnectListener {

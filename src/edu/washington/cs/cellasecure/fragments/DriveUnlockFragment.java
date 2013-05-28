@@ -18,25 +18,29 @@ package edu.washington.cs.cellasecure.fragments;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.OnConnectListener;
 import edu.washington.cs.cellasecure.bluetooth.Connection;
 
-public class DriveUnlockFragment extends Fragment implements View.OnClickListener {
+public class DriveUnlockFragment extends Fragment implements View.OnClickListener,
+        OnConnectListener{
 
     private BluetoothUtility mBT;
     private Button mLockStatus;
     private View mDriveUnlockView;
     private Drive mDrive;
 
-    private Connection mConnection = null;
+    private static Connection mConnection;
 
     /*
      * (non-Javadoc)
@@ -50,6 +54,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         return inflater.inflate(R.layout.fragment_drive_unlock,
                 container, false);
     }
+
 
     /*
      * (non-Javadoc)
@@ -76,22 +81,55 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         }
         mBT = new BluetoothUtility(activity);
 
-        mBT.setOnConnectListener(new OnConnectListener() {
-            public void onConnected (Connection connection) {
-                mConnection = connection;
-            }
-        });
+        mBT.setOnConnectListener(this);
+
         
         mBT.connect(mDrive.getDevice());
-
+        Log.e("Foo", "After connect");
+    }
+    
+    public void onConnected (Connection connection) {
+        if (connection == null) Log.e("Foo", "connection is null");
+        assert (connection != null);
+        mConnection = connection;
+        Log.e("Foo", "onConnected: " + mConnection.toString());
+    }
+    
+    public void onResume() {
+        super.onResume();
+        if (mBT != null && mConnection == null)
+            mBT.connect(mDrive.getDevice());
+    }
+    
+    public void onStop() {
+        super.onStop();
+        if (mConnection != null)
+            mConnection.disconnect();
     }
 
     @Override
     public void onClick(View v) {
+        Log.e("Foo", "onClick");
         if (v.equals(mLockStatus) || v.equals(mDriveUnlockView)) {
             if (mConnection != null) {
+                Log.e("Foo", "Send");
                 mConnection.sendPassword("12345678");
+                Log.e("Foo", "Sent");
             }
+        }
+    }
+    
+    public void isLocked(BluetoothDevice device, boolean status) {
+        Activity parent = getActivity();
+        TextView lsi = (TextView) parent.findViewById(R.id.drive_manage_lock_status);
+        if (status) {
+            mLockStatus.setText(R.string.device_manage_lock_status_locked);
+            lsi.setBackgroundResource(android.R.color.holo_red_dark);
+            lsi.setText(R.string.device_manage_lock_status_unlocked);
+        } else {
+            mLockStatus.setText(R.string.device_manage_lock_status_unlocked);
+            lsi.setBackgroundResource(android.R.color.holo_green_dark);
+            lsi.setText(R.string.device_manage_lock_status_unlocked);
         }
     }
 }

@@ -18,7 +18,6 @@ package edu.washington.cs.cellasecure.fragments;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,7 +62,6 @@ public class DriveConnectFragment extends Fragment implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        mBT = new BluetoothUtility(getActivity());
     }
 
     /*
@@ -102,9 +100,7 @@ public class DriveConnectFragment extends Fragment implements
         Activity activity = getActivity();
         mDeviceListAdapter = new ArrayAdapter<Drive>(activity,
                 android.R.layout.simple_list_item_1);
-        
-        
-        
+
         new LoadDevicesTask(getActivity()).execute();
 
         mDeviceList = (ListView) activity.findViewById(R.id.drive_connect_list);
@@ -121,6 +117,9 @@ public class DriveConnectFragment extends Fragment implements
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.menu_refresh_devices:
+            // clear discovered devices and restart
+            mDeviceListAdapter.clear();
+            mDeviceListAdapter.notifyDataSetChanged();
             new LoadDevicesTask(getActivity()).execute();
             return true;
         default:
@@ -140,7 +139,7 @@ public class DriveConnectFragment extends Fragment implements
     }
 
     private void startBluetoothScan() {
-//        mBT = new BluetoothUtility(getActivity());
+        mBT = new BluetoothUtility(getActivity());
         
         mBT.setOnDiscoveryListener(new OnDiscoveryListener() {
             @Override
@@ -177,13 +176,15 @@ public class DriveConnectFragment extends Fragment implements
         mBondedMap.put(selectedDrive.getAddress(), selectedDrive.getName());
         Log.e("Foo", "Map: " + mBondedMap.toString());
         new WriteDeviceTask(getActivity(), mBondedMap).execute();
-        // TODO: Add device to stored list
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (mBT != null) mBT.onPause();
+        if (mBT != null) {
+            mBT.onPause();
+            if (mBT.isScanning()) mBT.cancelDiscovery();
+        }
     }
 
     @Override
@@ -208,7 +209,7 @@ public class DriveConnectFragment extends Fragment implements
             startBluetoothScan();
         }
     }
-    
+
     private class WriteDeviceTask extends AsyncTask<Void, Void, Void> {
         private Activity mActivity;
         private Map<String, String> mMap;

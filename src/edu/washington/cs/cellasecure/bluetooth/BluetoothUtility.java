@@ -27,6 +27,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.util.Log;
 
 /**
  * Bluetooth Utility library for connecting Android mobile applications with
@@ -81,6 +82,9 @@ public class BluetoothUtility {
         };
         IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+        IntentFilter discovery_finished_filter
+            = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
     }
 
     /**
@@ -94,6 +98,7 @@ public class BluetoothUtility {
             throw new IllegalStateException("Bluetooth must be enabled");
         if (mBluetoothAdapter.isDiscovering()) mBluetoothAdapter.cancelDiscovery();
         mBluetoothAdapter.startDiscovery();
+        Log.e("Foo", "scanForDevices: discovery started");
     }
 
     /**

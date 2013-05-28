@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,8 +50,6 @@ public class DriveListActivity extends ListActivity {
         setContentView(R.layout.activity_drive_list);
 
         setProgressBarIndeterminateVisibility(true);
-        // TODO: make actionbar refesh button start spinning
-
         ListAdapter adapter = new DriveListAdapter();
 
         setListAdapter(adapter);
@@ -184,6 +183,7 @@ public class DriveListActivity extends ListActivity {
 
         @Override
         public void onDiscovery(BluetoothDevice device) {
+            Log.e("Foo", "onDiscovery: entering");
             Drive drive = new Drive(device);
             mActivity.setProgressBarIndeterminateVisibility(false);
             if (mPairedOutOfRangeDrives.remove(drive))
@@ -196,7 +196,7 @@ public class DriveListActivity extends ListActivity {
 
         @Override
         public void onDiscoveryFinished() {
-            // TODO: Make refresh button stop spinning
+            mActivity.setProgressBarIndeterminateVisibility(false);
         }
 
         private class PairedDrivesLoadTask extends AsyncTask<Void, Void, Map<String, String>> {
@@ -216,6 +216,7 @@ public class DriveListActivity extends ListActivity {
                 mBT = new BluetoothUtility(mActivity);
                 mBT.setOnDiscoveryListener(mAdapter);
                 mBT.setOnDiscoveryFinishedListener(mAdapter);
+                Log.e("Foo", "onPostExecute: listeners set");
                 if (!mBT.isEnabled()) {
                     mBT.enableBluetooth();
                 } else {

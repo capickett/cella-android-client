@@ -19,6 +19,7 @@ package edu.washington.cs.cellasecure;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
@@ -26,10 +27,15 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.BaseAdapter;
 import android.widget.ListAdapter;
+import android.widget.TextView;
+import android.widget.ToggleButton;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class DriveListActivity extends ListActivity {
 
@@ -39,12 +45,21 @@ public class DriveListActivity extends ListActivity {
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         setContentView(R.layout.activity_drive_list);
 
+        setProgressBarIndeterminateVisibility(true);
+        // TODO: make actionbar refesh button start spinning
+
         ListAdapter adapter = new DriveListAdapter();
 
         setListAdapter(adapter);
     }
 
-    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener {
+    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener, BluetoothUtility.OnDiscoveryFinishedListener {
+
+
+        private static final int VIEW_TYPE_PAIRED_INRANGE = 0;
+        private static final int VIEW_TYPE_INRANGE = 1;
+        private static final int VIEW_TYPE_PAIRED_OORANGE = 2;
+        private static final int VIEW_TYPE_COUNT = 3;
 
         // load paired devices and add to list
         // then, scan over bluetooth and add pairable devices
@@ -66,16 +81,6 @@ public class DriveListActivity extends ListActivity {
             new PairedDrivesLoadTask().execute();
         }
 
-        private Set<Drive> chooseSet(int position) {
-
-            if (position > threshold2)
-                return mPairedOutOfRangeDrives;
-            else if (position > threshold1)
-                return mInRangeDrives;
-            else
-                return mPairedInRangeDrives;
-        }
-
         @Override
         public int getCount() {
             return mPairedInRangeDrives.size() + mInRangeDrives.size() + mPairedOutOfRangeDrives.size();
@@ -95,12 +100,67 @@ public class DriveListActivity extends ListActivity {
 
         @Override
         public long getItemId(int position) {
-            return 0; // TODO: Implement me
+            return position;
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            return null; // TODO: Implement me
+            View v = convertView != null ? convertView : View.inflate(parent.getContext(), R.layout.list_drive, parent);
+            Drive d = (Drive) getItem(position);
+            int viewType = getItemViewType(position);
+
+            switch (viewType) {
+                case VIEW_TYPE_PAIRED_INRANGE:
+                    ((TextView) v.findViewById(R.id.list_drive_name)).setText(d.getName());
+                    ((TextView) v.findViewById(R.id.list_drive_address)).setText(d.getAddress());
+                    // FIXME: d.isLocked is unimplemented
+                    ((ToggleButton) v.findViewById(R.id.list_drive_lock_toggle)).setChecked(d.isLocked());
+                    break;
+                case VIEW_TYPE_INRANGE:
+                    ((TextView) v.findViewById(R.id.list_drive_name)).setText(d.getName());
+                    ((TextView) v.findViewById(R.id.list_drive_address)).setText(d.getAddress());
+                    // TODO: replace ToggleButton with "+" new device button
+                    ((ToggleButton) v.findViewById(R.id.list_drive_lock_toggle)).setChecked(false);
+                    break;
+                case VIEW_TYPE_PAIRED_OORANGE:
+                    TextView tvDriveName = (TextView) v.findViewById(R.id.list_drive_name);
+                    tvDriveName.setTextColor(Color.LTGRAY);
+                    tvDriveName.setText(d.getName());
+                    TextView tvDriveAddress = (TextView) v.findViewById(R.id.list_drive_address);
+                    tvDriveAddress.setTextColor(Color.LTGRAY);
+                    tvDriveAddress.setText(d.getAddress());
+                    // TODO: do something with lock status
+                    v.findViewById(R.id.list_drive_lock_toggle).setEnabled(false);
+                    break;
+            }
+            return v;
+        }
+
+        @Override
+        public boolean hasStableIds() {
+            return false;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return mPairedInRangeDrives.isEmpty() && mInRangeDrives.isEmpty() && mPairedOutOfRangeDrives.isEmpty();
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            int threshold1 = mPairedInRangeDrives.size();
+            int threshold2 = threshold1 + mInRangeDrives.size();
+            if (position >= threshold2)
+                return VIEW_TYPE_PAIRED_OORANGE;
+            else if (position >= threshold1)
+                return VIEW_TYPE_INRANGE;
+            else
+                return VIEW_TYPE_PAIRED_INRANGE;
+        }
+
+        @Override
+        public int getViewTypeCount() {
+            return VIEW_TYPE_COUNT;
         }
 
         @Override
@@ -122,6 +182,11 @@ public class DriveListActivity extends ListActivity {
             notifyDataSetChanged();
         }
 
+        @Override
+        public void onDiscoveryFinished() {
+            // TODO: Make refresh button stop spinning
+        }
+
         private class PairedDrivesLoadTask extends AsyncTask<Void, Void, Map<String, String>> {
 
             private DriveListAdapter mAdapter = DriveListAdapter.this;
@@ -138,7 +203,9 @@ public class DriveListActivity extends ListActivity {
                 mAdapter.notifyDataSetChanged();
                 BluetoothUtility bt = new BluetoothUtility(mActivity);
                 bt.setOnDiscoveryListener(mAdapter);
+                bt.setOnDiscoveryFinishedListener(mAdapter);
                 bt.scanForDevices();
+                mActivity.setProgressBarIndeterminateVisibility(false);
             }
         }
     }

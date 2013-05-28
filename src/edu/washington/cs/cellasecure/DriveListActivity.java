@@ -236,7 +236,7 @@ public class DriveListActivity extends ListActivity {
         @Override
         public void isLocked(BluetoothDevice device, boolean status) {
             Drive drive = new Drive(device);
-            drive.setLockStatus(!status);
+            drive.setLockStatus(status);
             mPairedInRangeDrives.add(drive);
             
             notifyDataSetChanged();

@@ -18,7 +18,6 @@ package edu.washington.cs.cellasecure.bluetooth;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -27,7 +26,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.util.Log;
 
 /**
  * Bluetooth Utility library for connecting Android mobile applications with
@@ -41,7 +39,7 @@ public class BluetoothUtility {
 
     public static final int BLUETOOTH_REQUEST_ID = 1337;
 
-    private static final UUID     mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+//    private static final UUID     mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private BluetoothAdapter      mBluetoothAdapter;    // Connection point for Bluetooth devices
     private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
@@ -49,7 +47,7 @@ public class BluetoothUtility {
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
 
     private OnDiscoveryListener   mDiscoveryListener;   // Listener to handle device discovery
-    private OnConnectListener     mConnectListener;     // Listener to handle connections
+//    private OnConnectListener     mConnectListener;     // Listener to handle connections
     
     private OnDiscoveryFinishedListener mDiscoveryFinishedListener; // Listener to handle discovery finished
 
@@ -83,13 +81,6 @@ public class BluetoothUtility {
                 }
             }
         };
-        /*
-        IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
-        IntentFilter discovery_finished_filter
-            = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
-        */
     }
     
     public BluetoothUtility() {
@@ -115,7 +106,6 @@ public class BluetoothUtility {
             mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
             
             mBluetoothAdapter.startDiscovery();
-            Log.e("Foo", "scanForDevices: discovery started");
         } else {
             throw new IllegalStateException("Activity must be non-null");
         }
@@ -237,19 +227,19 @@ public class BluetoothUtility {
         }
     }
 
-    /**
-     * Attempt to establish a connection with the given device
-     * 
-     * @param device
-     *            the Bluetooth device to connect to
-     * @throws IllegalStateException if Bluetooth is not enabled
-     */
-    public void connect(BluetoothDevice device) {
-        if (!mBluetoothAdapter.isEnabled()) 
-            throw new IllegalStateException("Bluetooth must be enabled");
-        new Thread(new ConnectionThread(
-                device, mBluetoothAdapter, mUUID, mConnectListener)).start();
-    }
+//    /**
+//     * Attempt to establish a connection with the given device
+//     * 
+//     * @param device
+//     *            the Bluetooth device to connect to
+//     * @throws IllegalStateException if Bluetooth is not enabled
+//     */
+//    public void connect(BluetoothDevice device) {
+//        if (!mBluetoothAdapter.isEnabled()) 
+//            throw new IllegalStateException("Bluetooth must be enabled");
+//        new Thread(new ConnectionThread(
+//                device, mBluetoothAdapter, mUUID, mConnectListener)).start();
+//    } 
     
     /* For Android */
     
@@ -273,9 +263,9 @@ public class BluetoothUtility {
         mDiscoveryListener = dl;
     }
     
-    public void setOnConnectListener (OnConnectListener cl) {
-        mConnectListener = cl;
-    }
+//    public void setOnConnectListener (OnConnectListener cl) {
+//        mConnectListener = cl;
+//    }
 
     public void setOnDiscoveryFinishedListener(OnDiscoveryFinishedListener dfl) {
         this.mDiscoveryFinishedListener = dfl;
@@ -293,15 +283,15 @@ public class BluetoothUtility {
         public void onDiscovery(BluetoothDevice device);
     }
     
-    public interface OnConnectListener {
-        /**
-         * Callback to return an established connection
-         * 
-         * @param connection
-         *            the connection to the Bluetooth device
-         */
-        public void onConnected(Connection connection);
-    }
+//    public interface OnConnectListener {
+//        /**
+//         * Callback to return an established connection
+//         * 
+//         * @param connection
+//         *            the connection to the Bluetooth device
+//         */
+//        public void onConnected(Connection connection);
+//    }
 
     public interface OnDiscoveryFinishedListener {
         /**

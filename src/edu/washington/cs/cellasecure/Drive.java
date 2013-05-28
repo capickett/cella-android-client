@@ -20,6 +20,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.Parcel;
 import android.os.Parcelable;
+import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
+import edu.washington.cs.cellasecure.bluetooth.Connection;
 
 public class Drive implements Parcelable {
 
@@ -62,9 +64,10 @@ public class Drive implements Parcelable {
 
     @Override
     public int describeContents() { return 0; }
-
+    
     public boolean isLocked() {
-        // TODO: Complete me
+        // connect
+        // onConnected (Connection)
         return true;
     }
 

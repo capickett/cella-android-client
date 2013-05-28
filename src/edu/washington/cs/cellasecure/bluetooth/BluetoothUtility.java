@@ -49,8 +49,10 @@ public class BluetoothUtility {
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
 
     private OnDiscoveryListener   mDiscoveryListener;   // Listener to handle device discovery
-    private OnDiscoveryFinishedListener mDiscoveryFinishedListener; // Listener to handle discovery finished
     private OnConnectListener     mConnectListener;     // Listener to handle connections
+    
+    private OnDiscoveryFinishedListener mDiscoveryFinishedListener; // Listener to handle discovery finished
+
     
     /**
      * Constructs a new Bluetooth utility to manage devices
@@ -76,15 +78,22 @@ public class BluetoothUtility {
                         mDiscoveryListener.onDiscovery(device);
                 } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                     if (mDiscoveryFinishedListener != null)
+                        if (mActivity != null) mActivity.unregisterReceiver(mBroadcastReceiver);
                         mDiscoveryFinishedListener.onDiscoveryFinished();
                 }
             }
         };
+        /*
         IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
         IntentFilter discovery_finished_filter
             = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
+        */
+    }
+    
+    public BluetoothUtility() {
+        this(null);
     }
 
     /**
@@ -97,8 +106,19 @@ public class BluetoothUtility {
         if (!mBluetoothAdapter.isEnabled())
             throw new IllegalStateException("Bluetooth must be enabled");
         if (mBluetoothAdapter.isDiscovering()) mBluetoothAdapter.cancelDiscovery();
-        mBluetoothAdapter.startDiscovery();
-        Log.e("Foo", "scanForDevices: discovery started");
+
+        if (mActivity != null) {
+            IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+            IntentFilter discovery_finished_filter
+                = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
+            
+            mBluetoothAdapter.startDiscovery();
+            Log.e("Foo", "scanForDevices: discovery started");
+        } else {
+            throw new IllegalStateException("Activity must be non-null");
+        }
     }
 
     /**
@@ -109,12 +129,16 @@ public class BluetoothUtility {
     }
     
     /**
-     * ENables bluetooth via ACTION_REQUEST_ENABLE intent
+     * Enables bluetooth via ACTION_REQUEST_ENABLE intent
      *
      */
     public void enableBluetooth() {
-        Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        mActivity.startActivityForResult(i, BLUETOOTH_REQUEST_ID);
+        if (mActivity != null) {
+            Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            mActivity.startActivityForResult(i, BLUETOOTH_REQUEST_ID);
+        } else {
+            throw new IllegalStateException("Activity must be non-null");
+        }
     }
     
     /**
@@ -230,12 +254,17 @@ public class BluetoothUtility {
     /* For Android */
     
     public void onPause() {
-        mActivity.unregisterReceiver(mBroadcastReceiver);
+        if (mActivity != null) mActivity.unregisterReceiver(mBroadcastReceiver);
     }
     
     public void onResume() {
-        IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+        if (mActivity != null) {
+            IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+            IntentFilter discovery_finished_filter
+            = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
+        }
     }
     
     /* Callback setters */

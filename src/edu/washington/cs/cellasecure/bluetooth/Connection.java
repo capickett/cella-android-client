@@ -85,6 +85,10 @@ public class Connection {
 
         // getConfiguration();
     }
+    
+    public boolean isConnected() {
+        return mBluetoothSocket.isConnected();
+    }
 
     /**
      * Gets configuration for Bluetooth device, returning it through

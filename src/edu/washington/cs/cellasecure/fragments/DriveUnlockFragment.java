@@ -28,11 +28,9 @@ import android.widget.Button;
 import android.widget.TextView;
 import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.R;
-import edu.washington.cs.cellasecure.bluetooth.Connection;
 
 public class DriveUnlockFragment extends Fragment implements View.OnClickListener {
 
-    private Connection mConnection; 
     private Button mLockStatus;
     private View mDriveUnlockView;
     private Drive mDrive;
@@ -81,7 +79,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
     public void onClick(View v) {
         Log.e("Foo", "onClick");
         if (v.equals(mLockStatus) || v.equals(mDriveUnlockView)) {
-            mConnection.sendPassword("12345678");
+            mDrive.sendPassword("12345678");
         }
     }
     

@@ -24,6 +24,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 import edu.washington.cs.cellasecure.bluetooth.Connection;
 
 public class Drive implements Parcelable {
@@ -87,6 +88,12 @@ public class Drive implements Parcelable {
         new ConnectThread(mDevice, cl).run();
     }
     
+    public void sendPassword(String passwd) {
+        if (mConnection.isConnected()) 
+            mConnection.sendPassword(passwd);
+        else
+            throw new IllegalArgumentException("Connection must be established");
+    }
     
     @Override
     public int hashCode() {
@@ -135,6 +142,7 @@ public class Drive implements Parcelable {
                 socket.connect();
                 c = new Connection(socket);
             } catch (IOException e) {
+                Log.e("Foo", "Failed to connect " + e.getMessage());
                 c = null;
             }
             mListener.onConnected(c);

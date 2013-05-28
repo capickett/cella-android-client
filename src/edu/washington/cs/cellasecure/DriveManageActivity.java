@@ -69,10 +69,14 @@ public class DriveManageActivity extends Activity implements OnConnectedListener
     
     @Override
     public void onConnected(Connection c) {
-        mDrive.setConnection(c);
-        c.setOnLockQueryListener(this);
-        c.getLockStatus();
-
+        if (c == null) {
+            // TODO: what to do here?
+            throw new IllegalArgumentException("Connection is null");
+        } else {
+            mDrive.setConnection(c);
+            c.setOnLockQueryListener(this);
+            c.getLockStatus();
+        }
     }
     
     @Override

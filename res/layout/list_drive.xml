@@ -25,7 +25,10 @@
         android:id="@+id/list_drive_lock_toggle"
         android:background="@drawable/list_drive_lock_status"
         android:layout_marginLeft="-8dp"
-        android:layout_marginRight="-8dp"/>
+        android:layout_marginRight="-8dp"
+        android:text=""
+        android:textOff=""
+        android:textOn=""/>
 
     <LinearLayout
         android:orientation="vertical"

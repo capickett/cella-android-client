@@ -16,6 +16,10 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
@@ -24,17 +28,20 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.*;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.BaseAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
+import edu.washington.cs.cellasecure.bluetooth.Connection;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class DriveListActivity extends ListActivity {
 
@@ -98,7 +105,9 @@ public class DriveListActivity extends ListActivity {
         }
     }
 
-    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener, BluetoothUtility.OnDiscoveryFinishedListener {
+    private class DriveListAdapter extends BaseAdapter implements 
+        ListAdapter, BluetoothUtility.OnDiscoveryListener,
+        BluetoothUtility.OnDiscoveryFinishedListener, Connection.OnLockQueryListener {
 
 
         private static final int VIEW_TYPE_PAIRED_INRANGE = 0;
@@ -178,6 +187,7 @@ public class DriveListActivity extends ListActivity {
             }
             return v;
         }
+        
 
         @Override
         public boolean hasStableIds() {
@@ -210,6 +220,9 @@ public class DriveListActivity extends ListActivity {
             if (mPairedOutOfRangeDrives.remove(drive)) mPairedInRangeDrives.add(drive);
             else mInRangeDrives.add(drive);
 
+            Connection c = new Connection(device);
+            c.setOnLockQueryListener(this);
+            c.getLockStatus();
             notifyDataSetChanged();
         }
 
@@ -218,6 +231,15 @@ public class DriveListActivity extends ListActivity {
             mActivity.setProgressBarIndeterminateVisibility(false);
             mMenuRefresh.setVisible(true);
             invalidateOptionsMenu();
+        }
+        
+        @Override
+        public void isLocked(BluetoothDevice device, boolean status) {
+            Drive drive = new Drive(device);
+            drive.setLockStatus(!status);
+            mPairedInRangeDrives.add(drive);
+            
+            notifyDataSetChanged();
         }
 
         private class PairedDrivesLoadTask extends AsyncTask<Void, Void, Map<String, String>> {

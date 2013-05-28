@@ -20,8 +20,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.Parcel;
 import android.os.Parcelable;
-import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
-import edu.washington.cs.cellasecure.bluetooth.Connection;
 
 public class Drive implements Parcelable {
 
@@ -40,42 +38,42 @@ public class Drive implements Parcelable {
 
     private String mName;
     private BluetoothDevice mDevice;
+    private boolean mLockStatus;
 
     
     private Drive(Parcel in) {
         mName = in.readString();
         mDevice = in.readParcelable(null);
+        mLockStatus = (Boolean) in.readValue(null);
     }
     
     public Drive(BluetoothDevice bt) {
         mName = bt.getName();
         mDevice = bt;
+        mLockStatus = true;
     }
     
     public Drive(String name, BluetoothDevice bt) {
         mName = name;
         mDevice = bt;
+        mLockStatus = true;
     }
 
     public Drive(String name, String address) {
-        
         this(name, BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address));
     }
 
     @Override
     public int describeContents() { return 0; }
-    
-    public boolean isLocked() {
-        // connect
-        // onConnected (Connection)
-        return true;
-    }
 
     @Override
-    public String toString() { return mName; }
-    public String getName() { return mName; }
+    public String toString() { return mName + " " + mDevice.getAddress(); }
+    
     public String getAddress() { return mDevice.getAddress(); }
+    public String getName() { return mName; }
     public BluetoothDevice getDevice() { return mDevice; }
+    public boolean isLocked() { return mLockStatus; }
+    public void setLockStatus(boolean status) { mLockStatus = status; } 
 
     
     @Override
@@ -103,6 +101,7 @@ public class Drive implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(mName);
         dest.writeParcelable(mDevice, flags);
+        dest.writeValue((Boolean) mLockStatus);
     }
 
 }

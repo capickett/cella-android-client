@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
@@ -72,10 +71,9 @@ public class Connection {
      * @throws IllegalArgumentException
      *             if socket is null
      */
-    public Connection(BluetoothAdapter adapter, BluetoothDevice device) {
-        if (device == null || adapter == null)
-            throw new IllegalArgumentException ("Arguments must be non-null: " 
-                                                + adapter.toString() + " " + device.toString());
+    public Connection(BluetoothDevice device) {
+        if (device == null)
+            throw new IllegalArgumentException ("Device must be non-null");
         try {
             mBluetoothSocket = device.createRfcommSocketToServiceRecord(mUUID);
         } catch (IOException e) {
@@ -259,9 +257,11 @@ public class Connection {
         public void run() {
             int attempt = 0;
             try {
+                Log.e("Foo", "Connection: attempting to connect");
                 mSocket.connect();
                 while (attempt < CONNECT_RETRY_TIMES) {
                     try {
+                        Log.e("Foo", "Connection: " + new String(mMessage));
                         mOutputStream.write(mMessage);
                         byte[] response = new byte[MAX_WRITE_RESPONSE_LENGTH];
                         mInputStream.read(response);

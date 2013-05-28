@@ -17,7 +17,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="horizontal"
               android:layout_width="match_parent"
-              android:layout_height="wrap_content">
+              android:layout_height="wrap_content"
+              android:layout_marginTop="8dp"
+              android:layout_marginBottom="8dp">
 
     <ToggleButton
         android:layout_width="wrap_content"
@@ -41,15 +43,13 @@
             android:textSize="20sp"
             android:textStyle="bold"
             android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:text="Drive name"/>
+            android:layout_width="match_parent"/>
 
         <TextView
             android:id="@+id/list_drive_address"
             android:textSize="12sp"
             android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:text="Drive Address"/>
+            android:layout_width="match_parent"/>
     </LinearLayout>
 
 </LinearLayout>

@@ -16,10 +16,6 @@
 
 package edu.washington.cs.cellasecure;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
@@ -28,16 +24,17 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
+import android.view.*;
 import android.widget.BaseAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class DriveListActivity extends ListActivity {
 
@@ -55,19 +52,46 @@ public class DriveListActivity extends ListActivity {
         setListAdapter(adapter);
     }
 
+    /*
+     * (non-Javadoc)
+     *
+     * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
+     */
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-        case BluetoothUtility.BLUETOOTH_REQUEST_ID:
-            if (mBT != null) mBT.scanForDevices();
-            break;
-        default:
-            // no-op
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflator = getMenuInflater();
+        inflator.inflate(R.menu.device_list, menu);
+        return true;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_refresh_devices:
+                setListAdapter(new DriveListAdapter());
+                return true;
+            default:
+                return false;
         }
     }
 
-    private class DriveListAdapter extends BaseAdapter implements 
-    ListAdapter, BluetoothUtility.OnDiscoveryListener, BluetoothUtility.OnDiscoveryFinishedListener {
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case BluetoothUtility.BLUETOOTH_REQUEST_ID:
+                if (mBT != null) mBT.scanForDevices();
+                break;
+            default:
+                // no-op
+        }
+    }
+
+    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener, BluetoothUtility.OnDiscoveryFinishedListener {
 
 
         private static final int VIEW_TYPE_PAIRED_INRANGE = 0;
@@ -104,12 +128,9 @@ public class DriveListActivity extends ListActivity {
         public Object getItem(int position) {
             int threshold1 = mPairedInRangeDrives.size();
             int threshold2 = threshold1 + mInRangeDrives.size();
-            if (position >= threshold2)
-                return mPairedOutOfRangeDrives.toArray()[position - threshold2];
-            else if (position >= threshold1)
-                return mInRangeDrives.toArray()[position - threshold1];
-            else
-                return mPairedInRangeDrives.toArray()[position];
+            if (position >= threshold2) return mPairedOutOfRangeDrives.toArray()[position - threshold2];
+            else if (position >= threshold1) return mInRangeDrives.toArray()[position - threshold1];
+            else return mPairedInRangeDrives.toArray()[position];
         }
 
         @Override
@@ -120,8 +141,7 @@ public class DriveListActivity extends ListActivity {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             LayoutInflater li = LayoutInflater.from(mActivity);
-            View v = (convertView != null) ?
-                    convertView : li.inflate(R.layout.list_drive, null);
+            View v = (convertView != null) ? convertView : li.inflate(R.layout.list_drive, null);
             Drive d = (Drive) getItem(position);
             int viewType = getItemViewType(position);
 
@@ -159,21 +179,16 @@ public class DriveListActivity extends ListActivity {
 
         @Override
         public boolean isEmpty() {
-            return mPairedInRangeDrives.isEmpty()
-                    && mInRangeDrives.isEmpty()
-                    && mPairedOutOfRangeDrives.isEmpty();
+            return mPairedInRangeDrives.isEmpty() && mInRangeDrives.isEmpty() && mPairedOutOfRangeDrives.isEmpty();
         }
 
         @Override
         public int getItemViewType(int position) {
             int threshold1 = mPairedInRangeDrives.size();
             int threshold2 = threshold1 + mInRangeDrives.size();
-            if (position >= threshold2)
-                return VIEW_TYPE_PAIRED_OORANGE;
-            else if (position >= threshold1)
-                return VIEW_TYPE_INRANGE;
-            else
-                return VIEW_TYPE_PAIRED_INRANGE;
+            if (position >= threshold2) return VIEW_TYPE_PAIRED_OORANGE;
+            else if (position >= threshold1) return VIEW_TYPE_INRANGE;
+            else return VIEW_TYPE_PAIRED_INRANGE;
         }
 
         @Override
@@ -186,10 +201,8 @@ public class DriveListActivity extends ListActivity {
             Log.e("Foo", "onDiscovery: entering");
             Drive drive = new Drive(device);
             mActivity.setProgressBarIndeterminateVisibility(false);
-            if (mPairedOutOfRangeDrives.remove(drive))
-                mPairedInRangeDrives.add(drive);
-            else 
-                mInRangeDrives.add(drive);
+            if (mPairedOutOfRangeDrives.remove(drive)) mPairedInRangeDrives.add(drive);
+            else mInRangeDrives.add(drive);
 
             notifyDataSetChanged();
         }

@@ -23,9 +23,11 @@ import java.util.Set;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -37,6 +39,8 @@ import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
 
 public class DriveListActivity extends ListActivity {
+
+    private BluetoothUtility mBT;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +54,17 @@ public class DriveListActivity extends ListActivity {
         ListAdapter adapter = new DriveListAdapter();
 
         setListAdapter(adapter);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+        case BluetoothUtility.BLUETOOTH_REQUEST_ID:
+            if (mBT != null) mBT.scanForDevices();
+            break;
+        default:
+            // no-op
+        }
     }
 
     private class DriveListAdapter extends BaseAdapter implements 
@@ -105,7 +120,9 @@ public class DriveListActivity extends ListActivity {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            View v = convertView != null ? convertView : View.inflate(parent.getContext(), R.layout.list_drive, parent);
+            LayoutInflater li = LayoutInflater.from(mActivity);
+            View v = (convertView != null) ?
+                    convertView : li.inflate(R.layout.list_drive, null);
             Drive d = (Drive) getItem(position);
             int viewType = getItemViewType(position);
 
@@ -143,7 +160,9 @@ public class DriveListActivity extends ListActivity {
 
         @Override
         public boolean isEmpty() {
-            return mPairedInRangeDrives.isEmpty() && mInRangeDrives.isEmpty() && mPairedOutOfRangeDrives.isEmpty();
+            return mPairedInRangeDrives.isEmpty()
+                    && mInRangeDrives.isEmpty()
+                    && mPairedOutOfRangeDrives.isEmpty();
         }
 
         @Override
@@ -166,6 +185,7 @@ public class DriveListActivity extends ListActivity {
         @Override
         public void onDiscovery(BluetoothDevice device) {
             Drive drive = new Drive(device);
+            mActivity.setProgressBarIndeterminateVisibility(false);
             if (mPairedOutOfRangeDrives.remove(drive))
                 mPairedInRangeDrives.add(drive);
             else 
@@ -193,13 +213,15 @@ public class DriveListActivity extends ListActivity {
                 for (Map.Entry<String, String> e : pairedDevices.entrySet())
                     mPairedOutOfRangeDrives.add(new Drive(e.getValue(), e.getKey()));
                 mAdapter.notifyDataSetChanged();
-                BluetoothUtility bt = new BluetoothUtility(mActivity);
-                bt.setOnDiscoveryListener(mAdapter);
-                bt.setOnDiscoveryFinishedListener(mAdapter);
-                bt.scanForDevices();
-                mActivity.setProgressBarIndeterminateVisibility(false);
+                mBT = new BluetoothUtility(mActivity);
+                mBT.setOnDiscoveryListener(mAdapter);
+                mBT.setOnDiscoveryFinishedListener(mAdapter);
+                if (!mBT.isEnabled()) {
+                    mBT.enableBluetooth();
+                } else {
+                    mBT.scanForDevices();
+                }
             }
         }
     }
-
 }

@@ -39,6 +39,7 @@ import java.util.Set;
 public class DriveListActivity extends ListActivity {
 
     private BluetoothUtility mBT;
+    private MenuItem mMenuRefresh;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,6 +62,9 @@ public class DriveListActivity extends ListActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflator = getMenuInflater();
         inflator.inflate(R.menu.device_list, menu);
+
+        mMenuRefresh = menu.findItem(R.id.menu_refresh_devices);
+        mMenuRefresh.setVisible(false);
         return true;
     }
 
@@ -73,6 +77,9 @@ public class DriveListActivity extends ListActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_refresh_devices:
+                setProgressBarIndeterminateVisibility(true);
+                mMenuRefresh.setVisible(false);
+                invalidateOptionsMenu();
                 setListAdapter(new DriveListAdapter());
                 return true;
             default:
@@ -200,7 +207,6 @@ public class DriveListActivity extends ListActivity {
         public void onDiscovery(BluetoothDevice device) {
             Log.e("Foo", "onDiscovery: entering");
             Drive drive = new Drive(device);
-            mActivity.setProgressBarIndeterminateVisibility(false);
             if (mPairedOutOfRangeDrives.remove(drive)) mPairedInRangeDrives.add(drive);
             else mInRangeDrives.add(drive);
 
@@ -210,6 +216,8 @@ public class DriveListActivity extends ListActivity {
         @Override
         public void onDiscoveryFinished() {
             mActivity.setProgressBarIndeterminateVisibility(false);
+            mMenuRefresh.setVisible(true);
+            invalidateOptionsMenu();
         }
 
         private class PairedDrivesLoadTask extends AsyncTask<Void, Void, Map<String, String>> {

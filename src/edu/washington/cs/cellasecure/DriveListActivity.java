@@ -230,7 +230,7 @@ public class DriveListActivity extends ListActivity {
         public void onDiscoveryFinished() {
             mActivity.setProgressBarIndeterminateVisibility(false);
             mMenuRefresh.setVisible(true);
-            invalidateOptionsMenu();
+            mActivity.invalidateOptionsMenu();
         }
         
         @Override

@@ -24,16 +24,39 @@ import android.os.Parcelable;
 public class Drive implements Parcelable {
 
     public static final String KEY_BUNDLE_DRIVE = "drive";
+    
+    public static final Parcelable.Creator<Drive> CREATOR
+        = new Parcelable.Creator<Drive>() {
+        public Drive createFromParcel(Parcel in) {
+            return new Drive(in);
+        }
+        
+        public Drive[] newArray(int size) {
+            return new Drive[size];
+        }
+    };
 
     private String mName;
     private BluetoothDevice mDevice;
 
+    
+    private Drive(Parcel in) {
+        mName = in.readString();
+        mDevice = in.readParcelable(null);
+    }
+    
+    public Drive(BluetoothDevice bt) {
+        mName = bt.getName();
+        mDevice = bt;
+    }
+    
     public Drive(String name, BluetoothDevice bt) {
         mName = name;
         mDevice = bt;
     }
 
     public Drive(String name, String address) {
+        
         this(name, BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address));
     }
 
@@ -53,20 +76,30 @@ public class Drive implements Parcelable {
 
     
     @Override
-    public boolean equals(Object o) {
-        return (o.getClass().equals(this.getClass()) &&
-                ((Drive) o).getAddress().equals(this.getAddress()) &&
-                ((Drive) o).getName().equals(this.getName()));
-
-    }
-    @Override
     public int hashCode() {
-        return 37 * mDevice.hashCode() + 7 * mName.hashCode();
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((mDevice == null) ? 0 : mDevice.hashCode());
+        return result;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
+        Drive other = ( Drive ) obj;
+        if (mDevice == null) {
+            if (other.mDevice != null) return false;
+        } else if (!mDevice.equals(other.mDevice)) return false;
+        return true;
+    }
+    
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(mName);
+        dest.writeParcelable(mDevice, flags);
     }
 
 }

@@ -34,7 +34,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
     private Button mLockStatus;
     private View mDriveUnlockView;
     private Drive mDrive;
-    
+
     /*
      * (non-Javadoc)
      *
@@ -44,8 +44,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_drive_unlock,
-                container, false);
+        return inflater.inflate(R.layout.fragment_drive_unlock, container, false);
     }
 
 
@@ -68,11 +67,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         Bundle args = getArguments();
         mDrive = args.getParcelable(Drive.KEY_BUNDLE_DRIVE);
 
-        if (mDrive.isLocked()) {
-            mLockStatus.setText(R.string.device_manage_lock_status_locked);
-        } else {
-            mLockStatus.setText(R.string.device_manage_lock_status_unlocked);
-        }
+        mLockStatus.setText(R.string.device_manage_lock_status_locked);
     }
 
     @Override
@@ -82,7 +77,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
             mDrive.sendPassword("12345678");
         }
     }
-    
+
     public void isLocked(BluetoothDevice device, boolean status) {
         Activity parent = getActivity();
         TextView lsi = (TextView) parent.findViewById(R.id.drive_manage_lock_status);

@@ -122,7 +122,8 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
 
     @Override
     public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
-        mBT.cancelDiscovery();
+        if (mBT.isScanning())
+            mBT.cancelDiscovery();
         Drive d = (Drive) getListAdapter().getItem(position);
         Intent i = new Intent(this, DriveManageActivity.class);
         i.putExtra(Drive.KEY_BUNDLE_DRIVE, d);
@@ -257,8 +258,9 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                 @Override
                 public void run() {
                     mDriveScanIndicator.setVisibility(View.GONE);
-                    if (mMenuRefresh != null)
+                    if (mMenuRefresh != null) {
                         mMenuRefresh.setActionView(null);
+                    }
                     mDriveListContainer.setVisibility(View.VISIBLE);
                 }
             });

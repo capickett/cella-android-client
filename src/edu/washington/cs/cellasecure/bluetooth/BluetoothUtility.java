@@ -218,20 +218,6 @@ public class BluetoothUtility {
                 return false;
         }
     }
-
-    //    /**
-    //     * Attempt to establish a connection with the given device
-    //     *
-    //     * @param device
-    //     *            the Bluetooth device to connect to
-    //     * @throws IllegalStateException if Bluetooth is not enabled
-    //     */
-    //    public void connect(BluetoothDevice device) {
-    //        if (!mBluetoothAdapter.isEnabled())
-    //            throw new IllegalStateException("Bluetooth must be enabled");
-    //        new Thread(new ConnectionThread(
-    //                device, mBluetoothAdapter, mUUID, mConnectListener)).start();
-    //    }
     
     /* For Android */
 
@@ -283,7 +269,7 @@ public class BluetoothUtility {
     //         * @param connection
     //         *            the connection to the Bluetooth device
     //         */
-    //        public void onConnected(Connection connection);
+    //        public void onConnect(Connection connection);
     //    }
 
     public interface OnDiscoveryFinishedListener {

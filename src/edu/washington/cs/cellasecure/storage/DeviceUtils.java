@@ -16,18 +16,24 @@
 
 package edu.washington.cs.cellasecure.storage;
 
+import android.app.Activity;
+import android.content.Context;
+import android.util.Log;
+import edu.washington.cs.cellasecure.Drive;
+
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
-
-import android.content.Context;
-import android.util.Log;
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class DeviceUtils {
     private static final String mFilename = "address_to_name_map.dat";
+
+    private static final ExecutorService sPool = Executors.newSingleThreadExecutor();
 
     // mapToFile
     public static void mapToFile(Context context, Map<String, String> addrNameMap) throws IOException {
@@ -52,7 +58,8 @@ public class DeviceUtils {
             while (scan.hasNextLine()) {
                 line = scan.nextLine();
                 splitLine = line.split("\t");
-                if (splitLine.length != 2) throw new IllegalStateException("Bad file data");
+                if (splitLine.length != 2)
+                    throw new IllegalStateException("Bad file data");
                 addrNameMap.put(splitLine[0], splitLine[1]);
             }
         } catch (FileNotFoundException fnfe) {
@@ -62,4 +69,36 @@ public class DeviceUtils {
         return addrNameMap;
     }
 
+    public static void loadDrives(Activity activity, OnPairedDrivesLoadListener listener) {
+        sPool.submit(new PairedDrivesLoadTask(activity, listener));
+    }
+
+    private static class PairedDrivesLoadTask implements Runnable {
+
+        private Activity mActivity;
+        private OnPairedDrivesLoadListener mListener;
+
+        public PairedDrivesLoadTask(Activity activity, OnPairedDrivesLoadListener listener) {
+            if (activity == null)
+                throw new IllegalArgumentException("activity must be non-null!");
+
+            mActivity = activity;
+            mListener = listener;
+        }
+
+        @Override
+        public void run() {
+            Map<String, String> pairedDrives = DeviceUtils.fileToMap(mActivity);
+            List<Drive> result = new ArrayList<Drive>();
+            for (Map.Entry<String, String> e : pairedDrives.entrySet())
+                result.add(new Drive(e.getValue(), e.getKey()));
+
+            if (mListener != null)
+                mListener.onPairedDrivesLoad(result);
+        }
+    }
+
+    public interface OnPairedDrivesLoadListener {
+        public void onPairedDrivesLoad(List<Drive> pairedDrives);
+    }
 }

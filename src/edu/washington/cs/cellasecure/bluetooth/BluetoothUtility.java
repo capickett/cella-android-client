@@ -23,7 +23,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Handler;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,9 +37,10 @@ import java.util.List;
  * @author CellaSecure
  */
 public class BluetoothUtility {
+
+    public static final String TAG = "BluetoothUtility";
     public static final int BLUETOOTH_REQUEST_ID = 1337;
 
-    private Handler mClientHandler;
     private BluetoothAdapter mBluetoothAdapter;    // Connection point for Bluetooth devices
     private BroadcastReceiver mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
     private Activity mActivity;            // Parent activity of this instance
@@ -55,7 +56,10 @@ public class BluetoothUtility {
      * @param activity Context for mobile application
      */
     public BluetoothUtility(Activity activity) {
+        Log.d(TAG, "Bluetooth Utility constructor");
         mActivity = activity;
+        if (mActivity == null)
+            throw new IllegalArgumentException("An activity is required to register BT receivers!");
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null)
             throw new IllegalStateException("Bluetooth not supported");
@@ -77,6 +81,7 @@ public class BluetoothUtility {
                 }
             }
         };
+        Log.d(TAG, "BluetoothUtility created");
     }
 
     /**

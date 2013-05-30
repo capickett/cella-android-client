@@ -20,19 +20,23 @@ import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
 import android.view.*;
 import android.widget.*;
 import android.widget.AdapterView.OnItemClickListener;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
+import edu.washington.cs.cellasecure.storage.DeviceUtils.OnPairedDrivesLoadListener;
 
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 public class DriveListActivity extends ListActivity implements OnItemClickListener {
+
+    public static final String TAG = "DriveListActivity";
 
     private BluetoothUtility mBT;
     private MenuItem mMenuRefresh;
@@ -44,24 +48,17 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_drive_list);
-
         getListView().setOnItemClickListener(this);
-
+        mBT = new BluetoothUtility(this);
         mDriveScanIndicator = (ProgressBar) findViewById(android.R.id.progress);
         mDriveListContainer = (LinearLayout) findViewById(R.id.list_drive_container);
+        DriveListAdapter adapter = new DriveListAdapter();
+        mBT.setOnDiscoveryFinishedListener(adapter);
+        mBT.setOnDiscoveryListener(adapter);
+        setListAdapter(adapter);
+        DeviceUtils.loadDrives(this, adapter);
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        setListAdapter(new DriveListAdapter());
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
-     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflator = getMenuInflater();
@@ -76,13 +73,17 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
     @Override
     protected void onResume() {
         super.onResume();
-        if (mBT != null) mBT.onResume();
+        if (mBT != null) {
+            mBT.onResume();
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (mBT != null) mBT.onPause();
+        if (mBT != null) {
+            mBT.onPause();
+        }
     }
 
     /*
@@ -97,7 +98,9 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                 mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
                 mDriveListContainer.setVisibility(View.GONE);
                 mDriveScanIndicator.setVisibility(View.VISIBLE);
-                setListAdapter(new DriveListAdapter());
+                DriveListAdapter adapter = new DriveListAdapter();
+                setListAdapter(adapter);
+                DeviceUtils.loadDrives(this, adapter);
                 mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
                 return true;
             default:
@@ -109,7 +112,9 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case BluetoothUtility.BLUETOOTH_REQUEST_ID:
-                if (mBT != null) mBT.scanForDevices();
+                if (mBT != null) {
+                    mBT.scanForDevices();
+                }
                 break;
             default:
                 // no-op
@@ -125,7 +130,8 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         startActivity(i);
     }
 
-    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener, BluetoothUtility.OnDiscoveryFinishedListener {
+    private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener,
+            BluetoothUtility.OnDiscoveryFinishedListener, OnPairedDrivesLoadListener {
         private static final int VIEW_TYPE_PAIRED_INRANGE = 0;
         private static final int VIEW_TYPE_INRANGE = 1;
         private static final int VIEW_TYPE_PAIRED_OORANGE = 2;
@@ -141,14 +147,9 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         // "+" icon is shown instead of lock status
         // Out of range + paired: text is grayed out, in a "disabled" state
 
-        private final DriveListActivity mActivity = DriveListActivity.this;
         private final Set<Drive> mPairedInRangeDrives = new HashSet<Drive>();
         private final Set<Drive> mInRangeDrives = new HashSet<Drive>();
         private final Set<Drive> mPairedOutOfRangeDrives = new HashSet<Drive>();
-
-        public DriveListAdapter() {
-            new PairedDrivesLoadTask().execute();
-        }
 
         @Override
         public int getCount() {
@@ -159,9 +160,13 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         public Object getItem(int position) {
             int threshold1 = mPairedInRangeDrives.size();
             int threshold2 = threshold1 + mInRangeDrives.size();
-            if (position >= threshold2) return mPairedOutOfRangeDrives.toArray()[position - threshold2];
-            else if (position >= threshold1) return mInRangeDrives.toArray()[position - threshold1];
-            else return mPairedInRangeDrives.toArray()[position];
+            if (position >= threshold2) {
+                return mPairedOutOfRangeDrives.toArray()[position - threshold2];
+            } else if (position >= threshold1) {
+                return mInRangeDrives.toArray()[position - threshold1];
+            } else {
+                return mPairedInRangeDrives.toArray()[position];
+            }
         }
 
         @Override
@@ -171,7 +176,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            LayoutInflater li = LayoutInflater.from(mActivity);
+            LayoutInflater li = getLayoutInflater();
             View v = (convertView != null) ? convertView : li.inflate(R.layout.list_drive, null);
             assert v != null;
             Drive d = (Drive) getItem(position);
@@ -212,9 +217,13 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         public int getItemViewType(int position) {
             int threshold1 = mPairedInRangeDrives.size();
             int threshold2 = threshold1 + mInRangeDrives.size();
-            if (position >= threshold2) return VIEW_TYPE_PAIRED_OORANGE;
-            else if (position >= threshold1) return VIEW_TYPE_INRANGE;
-            else return VIEW_TYPE_PAIRED_INRANGE;
+            if (position >= threshold2) {
+                return VIEW_TYPE_PAIRED_OORANGE;
+            } else if (position >= threshold1) {
+                return VIEW_TYPE_INRANGE;
+            } else {
+                return VIEW_TYPE_PAIRED_INRANGE;
+            }
         }
 
         @Override
@@ -224,45 +233,56 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
 
         @Override
         public void onDiscovery(BluetoothDevice device) {
+            Log.d(TAG, "onDiscovery called");
             Drive drive = new Drive(device);
-            if (mPairedOutOfRangeDrives.remove(drive)) mPairedInRangeDrives.add(drive);
-            else mInRangeDrives.add(drive);
+            if (mPairedOutOfRangeDrives.remove(drive)) {
+                mPairedInRangeDrives.add(drive);
+            } else {
+                mInRangeDrives.add(drive);
+            }
 
-            mDriveScanIndicator.setVisibility(View.GONE);
-            mDriveListContainer.setVisibility(View.VISIBLE);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mDriveScanIndicator.setVisibility(View.GONE);
+                    mDriveListContainer.setVisibility(View.VISIBLE);
+                }
+            });
             notifyDataSetChanged();
         }
 
         @Override
         public void onDiscoveryFinished() {
-            mDriveScanIndicator.setVisibility(View.GONE);
-            mDriveListContainer.setVisibility(View.VISIBLE);
-            mMenuRefresh.setActionView(null);
+            Log.d(TAG, "onDiscoveryFinished called");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mDriveScanIndicator.setVisibility(View.GONE);
+                    mMenuRefresh.setActionView(null);
+                    mDriveListContainer.setVisibility(View.VISIBLE);
+                }
+            });
         }
 
-        private class PairedDrivesLoadTask extends AsyncTask<Void, Void, Map<String, String>> {
+        @Override
+        public void onPairedDrivesLoad(List<Drive> pairedDrives) {
+            Log.d(TAG, "onPairedDrivesLoad called");
+            mPairedOutOfRangeDrives.addAll(pairedDrives);
 
-            private final DriveListAdapter mAdapter = DriveListAdapter.this;
-
-            @Override
-            protected Map<String, String> doInBackground(Void... args) {
-                return DeviceUtils.fileToMap(mActivity);
+            if (!pairedDrives.isEmpty()) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mDriveScanIndicator.setVisibility(View.GONE);
+                        mDriveListContainer.setVisibility(View.VISIBLE);
+                    }
+                });
+                notifyDataSetChanged();
             }
-
-            @Override
-            protected void onPostExecute(Map<String, String> pairedDevices) {
-                for (Map.Entry<String, String> e : pairedDevices.entrySet())
-                    mPairedOutOfRangeDrives.add(new Drive(e.getValue(), e.getKey()));
-                if (!pairedDevices.isEmpty()) {
-                    mDriveScanIndicator.setVisibility(View.GONE);
-                    mDriveListContainer.setVisibility(View.VISIBLE);
-                    mAdapter.notifyDataSetChanged();
-                }
-                mBT = new BluetoothUtility(mActivity);
-                mBT.setOnDiscoveryListener(mAdapter);
-                mBT.setOnDiscoveryFinishedListener(mAdapter);
-                if (!mBT.isEnabled()) mBT.enableBluetooth();
-                else mBT.scanForDevices();
+            if (!mBT.isEnabled()) {
+                mBT.enableBluetooth();
+            } else {
+                mBT.scanForDevices();
             }
         }
     }

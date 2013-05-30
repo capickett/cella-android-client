@@ -233,7 +233,9 @@ public class BluetoothUtility {
     /* For Android */
 
     public void onPause() {
-        if (mActivity != null) mActivity.unregisterReceiver(mBroadcastReceiver);
+        try {
+            if (mActivity != null) mActivity.unregisterReceiver(mBroadcastReceiver);
+        } catch (IllegalArgumentException e) { /* Do nothing */ }
     }
 
     public void onResume() {
@@ -265,7 +267,7 @@ public class BluetoothUtility {
         /**
          * Callback to notify a client when a device is found
          *
-         * @param bluetoothDevices the list of discovered Bluetooth devices
+         * @param device the discovered bluetooth device
          */
         public void onDiscovery(BluetoothDevice device);
     }

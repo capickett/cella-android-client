@@ -39,14 +39,19 @@ public class DriveManageActivity extends Activity implements OnConnectedListener
         Bundle args = getIntent().getExtras();
         if (args == null) throw new IllegalStateException("DriveManageActivity expects a bundled Drive as input.");
         mDrive = (Drive) args.get(Drive.KEY_BUNDLE_DRIVE);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         mDrive.connect(this);
     }
 
     /*
-     * (non-Javadoc)
-     * 
-     * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
-     */
+         * (non-Javadoc)
+         *
+         * @see android.app.Activity#onCreateOptionsMenu(android.view.Menu)
+         */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflator = getMenuInflater();
@@ -71,6 +76,7 @@ public class DriveManageActivity extends Activity implements OnConnectedListener
     @Override
     public void onConnected(Connection c) {
         assert c != null;
+        // FIXME: c is null?
         mDrive.setConnection(c);
         c.setOnLockQueryListener(this);
         c.getLockStatus();

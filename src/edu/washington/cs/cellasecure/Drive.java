@@ -145,7 +145,7 @@ public class Drive implements Parcelable {
                 Log.e("Foo", "Failed to connect " + e.getMessage());
                 c = null;
             }
-            mListener.onConnected(c);
+            mListener.onConnected(c); // FIXME: Use Handler to send message to UI thread
         }
     }
 

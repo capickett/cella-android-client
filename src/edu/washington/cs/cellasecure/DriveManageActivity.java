@@ -79,8 +79,7 @@ public class DriveManageActivity extends Activity implements OnConnectedListener
     @Override
     public void onLockQueryResult(boolean status) {
         mDrive.setLockStatus(status);
-        FragmentManager fragman = getFragmentManager();
-        FragmentTransaction fragtrans = fragman.beginTransaction();
+        FragmentTransaction fragtrans = getFragmentManager().beginTransaction();
         DriveUnlockFragment dufrag = new DriveUnlockFragment();
         Bundle args = new Bundle();
         args.putParcelable(Drive.KEY_BUNDLE_DRIVE, mDrive);

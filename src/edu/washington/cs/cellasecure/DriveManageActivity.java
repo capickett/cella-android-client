@@ -31,12 +31,13 @@ import edu.washington.cs.cellasecure.fragments.DriveUnlockFragment;
 public class DriveManageActivity extends Activity implements OnConnectedListener, OnLockQueryListener {
 
     private static Drive mDrive;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_drive_manage);
         Bundle args = getIntent().getExtras();
+        if (args == null) throw new IllegalStateException("DriveManageActivity expects a bundled Drive as input.");
         mDrive = (Drive) args.get(Drive.KEY_BUNDLE_DRIVE);
         mDrive.connect(this);
     }
@@ -66,21 +67,17 @@ public class DriveManageActivity extends Activity implements OnConnectedListener
                 return false;
         }
     }
-    
+
     @Override
     public void onConnected(Connection c) {
-        if (c == null) {
-            // TODO: what to do here?
-            throw new IllegalArgumentException("Connection is null");
-        } else {
-            mDrive.setConnection(c);
-            c.setOnLockQueryListener(this);
-            c.getLockStatus();
-        }
+        assert c != null;
+        mDrive.setConnection(c);
+        c.setOnLockQueryListener(this);
+        c.getLockStatus();
     }
-    
+
     @Override
-    public void isLocked(boolean status) {
+    public void onLockQueryResult(boolean status) {
         mDrive.setLockStatus(status);
         FragmentManager fragman = getFragmentManager();
         FragmentTransaction fragtrans = fragman.beginTransaction();

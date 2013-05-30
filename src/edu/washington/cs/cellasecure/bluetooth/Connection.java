@@ -240,7 +240,7 @@ public class Connection {
                     mInputStream.read(response);
                     Log.e("Foo", "response: " + new String(response));
                     if (response[0] == LOCK_RESPONSE_OKAY) {
-                        if (mLockListener != null) mLockListener.isLocked(response[1] == DEVICE_LOCKED_RESPONSE);
+                        if (mLockListener != null) mLockListener.onLockQueryResult(response[1] == DEVICE_LOCKED_RESPONSE);
                     } else if (response[0] == WRITE_RESPONSE_OKAY) {
                         if (mWriteListener != null) mWriteListener.onWriteResponse(new String(response));
                     } else if (response[0] == CONFIG_RESPONSE_OKAY) {
@@ -294,6 +294,6 @@ public class Connection {
          * @param status true is device is locked, false otherwise
          * @return true if device is locked, false otherwise
          */
-        public void isLocked(boolean status);
+        public void onLockQueryResult(boolean status);
     }
 }

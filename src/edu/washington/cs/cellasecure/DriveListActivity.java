@@ -21,7 +21,6 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
@@ -98,8 +97,8 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                 mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
                 mDriveListContainer.setVisibility(View.GONE);
                 mDriveScanIndicator.setVisibility(View.VISIBLE);
-                DriveListAdapter adapter = new DriveListAdapter();
-                setListAdapter(adapter);
+                DriveListAdapter adapter = (DriveListAdapter) getListAdapter();
+                adapter.clear();
                 DeviceUtils.loadDrives(this, adapter);
                 mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
                 return true;
@@ -258,7 +257,8 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                 @Override
                 public void run() {
                     mDriveScanIndicator.setVisibility(View.GONE);
-                    mMenuRefresh.setActionView(null);
+                    if (mMenuRefresh != null)
+                        mMenuRefresh.setActionView(null);
                     mDriveListContainer.setVisibility(View.VISIBLE);
                 }
             });
@@ -284,6 +284,12 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
             } else {
                 mBT.scanForDevices();
             }
+        }
+
+        public void clear() {
+            mInRangeDrives.clear();
+            mPairedOutOfRangeDrives.clear();
+            mPairedInRangeDrives.clear();
         }
     }
 }

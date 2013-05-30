@@ -23,6 +23,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Handler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ import java.util.List;
 public class BluetoothUtility {
     public static final int BLUETOOTH_REQUEST_ID = 1337;
 
+    private Handler mClientHandler;
     private BluetoothAdapter mBluetoothAdapter;    // Connection point for Bluetooth devices
     private BroadcastReceiver mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
     private Activity mActivity;            // Parent activity of this instance
@@ -55,7 +57,8 @@ public class BluetoothUtility {
     public BluetoothUtility(Activity activity) {
         mActivity = activity;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null) throw new IllegalStateException("Bluetooth not supported");
+        if (mBluetoothAdapter == null)
+            throw new IllegalStateException("Bluetooth not supported");
         mDiscoveredDevices = new ArrayList<BluetoothDevice>();
 
         // register receiver to hear when a device is found
@@ -65,18 +68,15 @@ public class BluetoothUtility {
                 if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     mDiscoveredDevices.add(device);
-                    if (mDiscoveryListener != null) mDiscoveryListener.onDiscovery(device);
+                    if (mDiscoveryListener != null)
+                        mDiscoveryListener.onDiscovery(device);
                 } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                    mActivity.unregisterReceiver(mBroadcastReceiver);
                     if (mDiscoveryFinishedListener != null)
-                        if (mActivity != null) mActivity.unregisterReceiver(mBroadcastReceiver);
-                    mDiscoveryFinishedListener.onDiscoveryFinished();
+                        mDiscoveryFinishedListener.onDiscoveryFinished();
                 }
             }
         };
-    }
-
-    public BluetoothUtility() {
-        this(null);
     }
 
     /**
@@ -87,22 +87,18 @@ public class BluetoothUtility {
      * @see OnDiscoveryListener
      */
     public void scanForDevices() {
-        if (!mBluetoothAdapter.isEnabled()) {
+        if (!mBluetoothAdapter.isEnabled())
             throw new IllegalStateException("Bluetooth must be enabled");
-        }
 
-        if (mBluetoothAdapter.isDiscovering()) mBluetoothAdapter.cancelDiscovery();
+        if (mBluetoothAdapter.isDiscovering())
+            mBluetoothAdapter.cancelDiscovery();
 
-        if (mActivity != null) {
-            IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
-            IntentFilter discovery_finished_filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-            mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
+        IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+        IntentFilter discovery_finished_filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
 
-            mBluetoothAdapter.startDiscovery();
-        } else {
-            throw new IllegalStateException("Activity must be non-null");
-        }
+        mBluetoothAdapter.startDiscovery();
     }
 
     /**
@@ -145,7 +141,8 @@ public class BluetoothUtility {
      * @throws IllegalStateException if Bluetooth is not enabled
      */
     public List<BluetoothDevice> getAllDevices() {
-        if (!mBluetoothAdapter.isEnabled()) throw new IllegalStateException("Bluetooth must be enabled");
+        if (!mBluetoothAdapter.isEnabled())
+            throw new IllegalStateException("Bluetooth must be enabled");
         List<BluetoothDevice> allDevices = new ArrayList<BluetoothDevice>(mDiscoveredDevices);
         allDevices.addAll(mBluetoothAdapter.getBondedDevices());
         return allDevices;
@@ -158,7 +155,8 @@ public class BluetoothUtility {
      * @throws IllegalStateException if Bluetooth is not enabled
      */
     public List<BluetoothDevice> getBondedDevices() {
-        if (!mBluetoothAdapter.isEnabled()) throw new IllegalStateException("Bluetooth must be enabled");
+        if (!mBluetoothAdapter.isEnabled())
+            throw new IllegalStateException("Bluetooth must be enabled");
         return new ArrayList<BluetoothDevice>(mBluetoothAdapter.getBondedDevices());
     }
 
@@ -234,7 +232,8 @@ public class BluetoothUtility {
 
     public void onPause() {
         try {
-            if (mActivity != null) mActivity.unregisterReceiver(mBroadcastReceiver);
+            if (mActivity != null)
+                mActivity.unregisterReceiver(mBroadcastReceiver);
         } catch (IllegalArgumentException e) { /* Do nothing */ }
     }
 

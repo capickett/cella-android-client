@@ -92,10 +92,11 @@ public class DriveManageFragment extends Fragment {
             mLockStatusIndicator = (TextView) parent.findViewById(R.id.drive_manage_lock_status);
 
             // mLockStatusIndicator
-            if (!mCurrentDrive.isLocked()) {
-                mLockStatusIndicator.setBackgroundResource(android.R.color.holo_green_dark);
-                mLockStatusIndicator.setText(R.string.device_manage_lock_status_unlocked);
-            }
+            // FIXME
+            //if (!mCurrentDrive.isLocked()) {
+            //    mLockStatusIndicator.setBackgroundResource(android.R.color.holo_green_dark);
+            //    mLockStatusIndicator.setText(R.string.device_manage_lock_status_unlocked);
+            //}
         }
     }
 

@@ -26,7 +26,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive;
+import edu.washington.cs.cellasecure.DriveManageActivity;
 import edu.washington.cs.cellasecure.R;
 
 public class DriveUnlockFragment extends Fragment implements View.OnClickListener {
@@ -66,15 +68,18 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
 
         Bundle args = getArguments();
         mDrive = args.getParcelable(Drive.KEY_BUNDLE_DRIVE);
+        boolean locked = args.getBoolean(DriveManageActivity.KEY_BUNDLE_LOCK_STATUS);
 
-        mLockStatus.setText(R.string.device_manage_lock_status_locked);
+
+        mLockStatus.setText(locked ? R.string.device_manage_lock_status_locked : R.string
+                .device_manage_lock_status_unlocked);
     }
 
     @Override
     public void onClick(View v) {
         Log.e("Foo", "onClick");
         if (v.equals(mLockStatus) || v.equals(mDriveUnlockView)) {
-            mDrive.sendPassword("12345678");
+            Toast.makeText(getActivity(), "TODO", Toast.LENGTH_SHORT);
         }
     }
 

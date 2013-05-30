@@ -31,6 +31,8 @@ import java.util.UUID;
 
 public class Drive implements Parcelable {
 
+    private static final String TAG = "Drive";
+
     // BEGIN PARCELABLE ///////////////////////////////////////////////////////
 
     public static final String KEY_BUNDLE_DRIVE = "drive";
@@ -148,6 +150,14 @@ public class Drive implements Parcelable {
             }
         });
         mConnection.send(LOCK_STATE_QUERY_BYTE, LOCK_STATE_QUERY_RESPONSE_SIZE);
+    }
+
+    public void disconnect() {
+        try {
+            mConnection.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Error disconnecting", e);
+        }
     }
 
     private static class DriveConnectTask implements Runnable {

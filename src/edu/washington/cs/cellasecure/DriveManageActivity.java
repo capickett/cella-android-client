@@ -17,22 +17,24 @@
 package edu.washington.cs.cellasecure;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.Button;
-import edu.washington.cs.cellasecure.bluetooth.Connection;
-import edu.washington.cs.cellasecure.bluetooth.Connection.OnLockQueryListener;
+import android.view.View;
 import edu.washington.cs.cellasecure.fragments.DriveUnlockFragment;
 
 import java.io.IOException;
 
-public class DriveManageActivity extends Activity implements Drive.OnConnectListener, Drive.OnLockQueryResultListener {
+public class DriveManageActivity extends Activity implements Drive.OnConnectListener,
+        Drive.OnLockQueryResultListener {
 
     private static final String TAG = "DriveManageActivity";
+
+    public static final String KEY_BUNDLE_LOCK_STATUS = "locked";
 
     private static Drive mDrive;
 
@@ -41,7 +43,10 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_drive_manage);
         Bundle args = getIntent().getExtras();
-        if (args == null) throw new IllegalStateException("DriveManageActivity expects a bundled Drive as input.");
+        if (args == null) {
+            throw new IllegalStateException("DriveManageActivity expects a bundled Drive as " +
+                    "input" + ".");
+        }
         mDrive = (Drive) args.get(Drive.KEY_BUNDLE_DRIVE);
 
         mDrive.setOnConnectListener(this);
@@ -80,5 +85,30 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
     public void onConnectFailure(IOException connectException) {
         Log.e(TAG, "Failed to connect to drive", connectException);
         finish(); // DIE
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mDrive.isConnected())
+            mDrive.disconnect();
+    }
+
+    @Override
+    public void onLockQueryResult(final boolean status) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                FragmentTransaction trans = getFragmentManager().beginTransaction();
+                Fragment f = new DriveUnlockFragment();
+                Bundle args = new Bundle();
+                args.putParcelable(Drive.KEY_BUNDLE_DRIVE, mDrive);
+                args.putBoolean(KEY_BUNDLE_LOCK_STATUS, status);
+                f.setArguments(args);
+                trans.replace(R.id.drive_manage_fragment_container, f);
+                findViewById(R.id.drive_loading_progress).setVisibility(View.GONE);
+                trans.commit();
+            }
+        });
     }
 }

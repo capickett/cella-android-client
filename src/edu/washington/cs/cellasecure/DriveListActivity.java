@@ -69,18 +69,32 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
 
         mMenuRefresh = menu.findItem(R.id.menu_refresh_devices);
         assert mMenuRefresh != null;
+        mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
         return true;
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mBT != null) mBT.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mBT != null) mBT.onPause();
+    }
+
     /*
-     * (non-Javadoc)
-     * 
-     * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
-     */
+         * (non-Javadoc)
+         *
+         * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
+         */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_refresh_devices:
+                mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
                 mDriveListContainer.setVisibility(View.GONE);
                 mDriveScanIndicator.setVisibility(View.VISIBLE);
                 setListAdapter(new DriveListAdapter());
@@ -95,10 +109,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case BluetoothUtility.BLUETOOTH_REQUEST_ID:
-                if (mBT != null) {
-                    mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
-                    mBT.scanForDevices();
-                }
+                if (mBT != null) mBT.scanForDevices();
                 break;
             default:
                 // no-op
@@ -251,10 +262,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                 mBT.setOnDiscoveryListener(mAdapter);
                 mBT.setOnDiscoveryFinishedListener(mAdapter);
                 if (!mBT.isEnabled()) mBT.enableBluetooth();
-                else {
-                    mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
-                    mBT.scanForDevices();
-                }
+                else mBT.scanForDevices();
             }
         }
     }

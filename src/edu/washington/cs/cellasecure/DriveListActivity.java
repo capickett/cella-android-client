@@ -39,6 +39,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
     private ProgressBar mDriveScanIndicator;
     private LinearLayout mDriveListContainer;
 
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -46,11 +47,14 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
 
         getListView().setOnItemClickListener(this);
 
-        ListAdapter adapter = new DriveListAdapter();
-        setListAdapter(adapter);
-
         mDriveScanIndicator = (ProgressBar) findViewById(android.R.id.progress);
-        mDriveListContainer = (LinearLayout ) findViewById(R.id.list_drive_container);
+        mDriveListContainer = (LinearLayout) findViewById(R.id.list_drive_container);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        setListAdapter(new DriveListAdapter());
     }
 
     /*
@@ -65,7 +69,6 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
 
         mMenuRefresh = menu.findItem(R.id.menu_refresh_devices);
         assert mMenuRefresh != null;
-        mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
         return true;
     }
 
@@ -78,6 +81,8 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_refresh_devices:
+                mDriveListContainer.setVisibility(View.GONE);
+                mDriveScanIndicator.setVisibility(View.VISIBLE);
                 setListAdapter(new DriveListAdapter());
                 mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
                 return true;
@@ -90,7 +95,10 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case BluetoothUtility.BLUETOOTH_REQUEST_ID:
-                if (mBT != null) mBT.scanForDevices();
+                if (mBT != null) {
+                    mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
+                    mBT.scanForDevices();
+                }
                 break;
             default:
                 // no-op
@@ -216,6 +224,8 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
 
         @Override
         public void onDiscoveryFinished() {
+            mDriveScanIndicator.setVisibility(View.GONE);
+            mDriveListContainer.setVisibility(View.VISIBLE);
             mMenuRefresh.setActionView(null);
         }
 
@@ -241,7 +251,10 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                 mBT.setOnDiscoveryListener(mAdapter);
                 mBT.setOnDiscoveryFinishedListener(mAdapter);
                 if (!mBT.isEnabled()) mBT.enableBluetooth();
-                else mBT.scanForDevices();
+                else {
+                    mMenuRefresh.setActionView(R.layout.actionbar_indeterminate_progress);
+                    mBT.scanForDevices();
+                }
             }
         }
     }

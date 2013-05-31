@@ -27,6 +27,7 @@ import edu.washington.cs.cellasecure.bluetooth.Connection.OnResponseListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.UUID;
 
 public class Drive implements Parcelable {
@@ -74,6 +75,10 @@ public class Drive implements Parcelable {
 
     private OnConnectListener mOnConnectListener;
     private OnLockQueryResultListener mOnLockQueryResultListener;
+    private OnLockStateChangeListener mOnLockStateChangeListener;
+    private OnFactoryResetListener mOnFactoryResetListener;
+    private OnConfigurationListener mOnConfigurationListener;
+    private OnPasswordSetListener mOnPasswordSetListener;
 
     public Drive(BluetoothDevice bt) {
         this(bt.getName(), bt);
@@ -103,21 +108,43 @@ public class Drive implements Parcelable {
 
     // BEGIN BLUETOOTH ////////////////////////////////////////////////////////
 
-    private static final byte[] LOCK_STATE_QUERY_BYTE = {'?'};
-    private static final byte[] CONFIG_REQUEST_BYTE = {'g'};
-    private static final byte[] CONFIG_SEND_BYTE = {'c'};
+    public static final boolean STATUS_LOCKED = true;
+    public static final boolean STATUS_UNLOCKED = false;
+
+    public static final byte RESPONSE_OKAY_BYTE = 'K';
+    public static final byte RESPONSE_BAD_BYTE = '~';
+
+    private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
+    private static final byte[] LOCK_REQUEST_BYTES = {'l'};
+    private static final byte[] FACTORY_RESET_BYTES = {'r'}; // FIXME: Decide on factory reset
+    private static final byte[] CONFIG_REQUEST_BYTES = {'g'};
+    private static final byte CONFIG_SEND_BYTE = 'c';
 
     private static final int LOCK_STATE_QUERY_RESPONSE_SIZE = 2;
+    private static final int YES_NO_QUERY_RESPONSE_SIZE = 1;
 
     private static final byte PASSWD_SEND_BYTE = 'p';
+    private static final byte PASSWD_SET_BYTE = 'n';
     private static final int PASSWD_MAX_LENGTH = 32;
+
+    private static final int CONFIG_STRING_SIZE = 1;
+
+    // CONNECTIONS
+
+    public interface OnConnectListener {
+        /**
+         * Callback to notify a client when the drive is connected
+         */
+        public void onConnect();
+
+        /**
+         * Callback to notify a client when the drive fails to connect
+         */
+        public void onConnectFailure(IOException connectException);
+    }
 
     public void setOnConnectListener(OnConnectListener listener) {
         mOnConnectListener = listener;
-    }
-
-    public void setOnLockQueryResultListener(OnLockQueryResultListener listener) {
-        mOnLockQueryResultListener = listener;
     }
 
     public void connect() {
@@ -126,6 +153,30 @@ public class Drive implements Parcelable {
 
     public boolean isConnected() {
         return mConnection != null && mConnection.isConnected();
+    }
+
+    public void disconnect() {
+        try {
+            mConnection.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Error disconnecting", e);
+        }
+    }
+
+    // LOCK QUERY
+
+    public interface OnLockQueryResultListener {
+        /**
+         * Callback to notify a client whether a device is unlocked or not
+         *
+         * @param status         true is device is locked, false otherwise
+         * @param queryException if there was an error, this was the exception raised
+         */
+        public void onLockQueryResult(boolean status, IOException queryException);
+    }
+
+    public void setOnLockQueryResultListener(OnLockQueryResultListener listener) {
+        mOnLockQueryResultListener = listener;
     }
 
     public void queryLockStatus() {
@@ -137,15 +188,16 @@ public class Drive implements Parcelable {
                 if (e != null) {
                     Log.e(TAG, "Send failure", e);
                     if (mOnLockQueryResultListener != null) {
-                        mOnLockQueryResultListener.onLockQueryResult(true, e);
+                        mOnLockQueryResultListener.onLockQueryResult(STATUS_LOCKED, e);
                     }
+                    return;
                 }
 
-                if (message[0] != '?') {
+                if (message[0] != LOCK_STATE_QUERY_BYTES[0]) {
                     Log.e(TAG, "Invalid response");
                     if (mOnLockQueryResultListener != null) {
-                        mOnLockQueryResultListener.onLockQueryResult(true,
-                                new IOException("Invalid response: " + message.toString()));
+                        mOnLockQueryResultListener.onLockQueryResult(STATUS_LOCKED, new IOException(
+                                "Invalid response: " + Arrays.toString(message)));
                     }
                 }
 
@@ -154,15 +206,214 @@ public class Drive implements Parcelable {
                 }
             }
         });
-        mConnection.send(LOCK_STATE_QUERY_BYTE, LOCK_STATE_QUERY_RESPONSE_SIZE);
+        mConnection.send(LOCK_STATE_QUERY_BYTES, LOCK_STATE_QUERY_RESPONSE_SIZE);
     }
 
-    public void disconnect() {
-        try {
-            mConnection.close();
-        } catch (IOException e) {
-            Log.e(TAG, "Error disconnecting", e);
+    // LOCK/UNLOCK
+
+    public interface OnLockStateChangeListener {
+
+        /**
+         * Callback to notify a client whether an attempt to unlock/lock was successful
+         *
+         * @param status             true if device is locked, false otherwise
+         * @param lockStateException if there was an error, this was the exception raised
+         */
+        public void onLockStateChanged(boolean status, IOException lockStateException);
+    }
+
+    public void setOnLockStateChangeListener(OnLockStateChangeListener listener) {
+        mOnLockStateChangeListener = listener;
+    }
+
+    public void unlock(String password) {
+        if (password.length() > PASSWD_MAX_LENGTH) {
+            throw new IllegalArgumentException("Password is too long!");
         }
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "UnlockListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Unlock request failure", e);
+                    if (mOnLockStateChangeListener != null) {
+                        mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, e);
+                    }
+                    return;
+                }
+
+                boolean success = message[0] == RESPONSE_OKAY_BYTE;
+                if (success && mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
+                } else if (mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, new IOException(
+                            "Bad password during request"));
+                }
+            }
+        });
+        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+        message[0] = PASSWD_SEND_BYTE;
+        System.arraycopy(password.getBytes(), 0, message, 1, password.length());
+        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
+    }
+
+    public void lock() {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "LockListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Lock request failure", e);
+                    if (mOnLockStateChangeListener != null) {
+                        mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, e);
+                    }
+                    return;
+                }
+
+                boolean success = message[0] == RESPONSE_OKAY_BYTE;
+                if (success && mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, null);
+                } else if (mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, new IOException(
+                            "Bad lock request"));
+                }
+            }
+        });
+        mConnection.send(LOCK_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
+    }
+
+    // FACTORY RESET
+
+    public interface OnFactoryResetListener {
+
+        /**
+         * Callback to notify client that factory reset is complete
+         *
+         * @param e if there was an error, this exception will be non-null
+         */
+        public void onFactoryReset(IOException e);
+    }
+
+    public void setOnFactoryResetListener(OnFactoryResetListener listener) {
+        mOnFactoryResetListener = listener;
+    }
+
+    public void factoryReset() {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "FactoryResetListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Factory reset request failure", e);
+                    if (mOnFactoryResetListener != null) {
+                        mOnFactoryResetListener.onFactoryReset(e);
+                    }
+                    return;
+                }
+
+                if (message[0] == RESPONSE_OKAY_BYTE) {
+                    if (mOnFactoryResetListener != null) {
+                        mOnFactoryResetListener.onFactoryReset(null);
+                    }
+                } else {
+                    if (mOnFactoryResetListener != null) {
+                        mOnFactoryResetListener.onFactoryReset(
+                                new IOException("Factory reset failed"));
+                    }
+                }
+            }
+        });
+        mConnection.send(FACTORY_RESET_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
+    }
+
+    // CONFIGURATION
+
+    public interface OnConfigurationListener {
+        /**
+         * Callback to notify a client when configuration is received
+         *
+         * @param config the configuration received from Bluetooth device, null if failure
+         * @param e      if there is an error, this will be non-null
+         */
+        public void onConfigurationRead(DeviceConfiguration config, IOException e);
+
+        /**
+         * Callback to notify a client when configuration is sent
+         *
+         * @param e if there is an error, this will be non-null
+         */
+        public void onConfigurationWritten(IOException e);
+    }
+
+    public void setOnConfigurationListener(OnConfigurationListener listener) {
+        mOnConfigurationListener = listener;
+    }
+
+    public void readConfiguration() {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "ConfigReadListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Error requesting config", e);
+                    if (mOnConfigurationListener != null) {
+                        mOnConfigurationListener.onConfigurationRead(null, e);
+                    }
+                    return;
+                }
+
+                if (message[0] == RESPONSE_OKAY_BYTE) {
+                    byte[] config = new byte[CONFIG_STRING_SIZE];
+                    System.arraycopy(message, 1, config, 0, CONFIG_STRING_SIZE);
+                    DeviceConfiguration devConfig = new DeviceConfiguration(config);
+                    if (mOnConfigurationListener != null) {
+                        mOnConfigurationListener.onConfigurationRead(devConfig, null);
+                    }
+                } else if (mOnConfigurationListener != null) {
+                    mOnConfigurationListener.onConfigurationRead(null, new IOException(
+                            "Bad config request"));
+                }
+
+            }
+        });
+        mConnection.send(CONFIG_REQUEST_BYTES, CONFIG_STRING_SIZE + 1);
+    }
+
+    public void sendConfiguration(DeviceConfiguration configuration) {
+        if (configuration == null) {
+            throw new IllegalArgumentException("Configuration must not be null");
+        }
+
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "ConfigSendListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Error requesting config send", e);
+                    if (mOnConfigurationListener != null) {
+                        mOnConfigurationListener.onConfigurationWritten(e);
+                    }
+                    return;
+                }
+
+                if (message[0] != RESPONSE_OKAY_BYTE && mOnConfigurationListener != null) {
+                    mOnConfigurationListener.onConfigurationWritten(
+                            new IOException("Device did not accept config"));
+                } else if (mOnConfigurationListener != null) {
+                    mOnConfigurationListener.onConfigurationWritten(null);
+                }
+            }
+        });
+        byte[] configBytes = configuration.getBytes();
+        byte[] message = new byte[configBytes.length + 1];
+        message[0] = CONFIG_SEND_BYTE;
+        System.arraycopy(configBytes, 0, message, 1, configBytes.length);
+        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
     private static class DriveConnectTask implements Runnable {
@@ -209,35 +460,49 @@ public class Drive implements Parcelable {
         }
     }
 
-    public interface OnConnectListener {
-        /**
-         * Callback to notify a client when the drive is connected
-         */
-        public void onConnect();
+    // SET PASSWORD
+
+    public interface OnPasswordSetListener {
 
         /**
-         * Callback to notify a client when the drive fails to connect
+         * Callback to notify client that the password has been set
+         *
+         * @param e if not null, an error has occured
          */
-        public void onConnectFailure(IOException connectException);
+        public void onPasswordSet(IOException e);
     }
 
-    public interface OnConfigurationListener {
-        /**
-         * Callback to notify a client when configuration is received
-         *
-         * @param config the configuration received from Bluetooth device, null if failure
-         */
-        public void onConfigurationRead(DeviceConfiguration config);
+    public void setOnPasswordSetListener(OnPasswordSetListener listener) {
+        mOnPasswordSetListener = listener;
     }
 
-    public interface OnLockQueryResultListener {
-        /**
-         * Callback to notify a client whether a device is unlocked or not
-         *
-         * @param status         true is device is locked, false otherwise
-         * @param queryException if there was an error, this was the exception raised
-         */
-        public void onLockQueryResult(boolean status, IOException queryException);
+    public void setPassword(String password) {
+        if (password.length() > PASSWD_MAX_LENGTH) {
+            throw new IllegalArgumentException("Password is too long");
+        }
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "PasswordSetListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Password set request failed", e);
+                    if (mOnPasswordSetListener != null) {
+                        mOnPasswordSetListener.onPasswordSet(e);
+                    }
+                }
+
+                if (message[0] != RESPONSE_OKAY_BYTE && mOnPasswordSetListener != null) {
+                    mOnPasswordSetListener.onPasswordSet(new IOException("Password set failed"));
+                } else if (mOnPasswordSetListener != null) {
+                    mOnPasswordSetListener.onPasswordSet(null);
+                }
+            }
+        });
+        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+        message[0] = PASSWD_SET_BYTE;
+        System.arraycopy(password.getBytes(), 0, message, 1, password.length());
+        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
     // END BLUETOOTH //////////////////////////////////////////////////////////

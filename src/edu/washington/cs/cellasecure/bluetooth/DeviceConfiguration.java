@@ -49,13 +49,13 @@ public class DeviceConfiguration {
      * 
      * @param config Configuration string
      */
-    public DeviceConfiguration(String config) {
+    public DeviceConfiguration(byte[] config) {
         mConfigurations = new LinkedHashMap<String, String>();
         
-        ByteBuffer buf = ByteBuffer.wrap(config.getBytes());
+        ByteBuffer buf = ByteBuffer.wrap(config);
         
         // BEGIN CONFIGURATION OPTIONS
-        short encryption_level = buf.getShort();
+        byte encryption_level = buf.get();
         mConfigurations.put("encryption_level", "" + encryption_level);
         
         // additional options here

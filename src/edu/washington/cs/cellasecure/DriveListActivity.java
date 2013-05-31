@@ -83,6 +83,11 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         if (mBT != null) {
             mBT.onPause();
         }
+        mDriveScanIndicator.setVisibility(View.GONE);
+        if (mMenuRefresh != null) {
+            mMenuRefresh.setActionView(null);
+        }
+        mDriveListContainer.setVisibility(View.VISIBLE);
     }
 
     /*
@@ -172,6 +177,11 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         @Override
         public long getItemId(int position) {
             return position;
+        }
+        
+        @Override
+        public boolean isEnabled(int position) {
+            return (position < mPairedInRangeDrives.size() + mInRangeDrives.size());
         }
 
         @Override

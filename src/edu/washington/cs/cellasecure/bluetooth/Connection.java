@@ -19,6 +19,7 @@ package edu.washington.cs.cellasecure.bluetooth;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
 import android.util.Log;
+import edu.washington.cs.cellasecure.Drive;
 
 import java.io.*;
 import java.util.concurrent.ExecutorService;
@@ -85,7 +86,7 @@ public class Connection {
 
     public void send(byte[] message, int maxResponseSize) {
         sPool.submit(new SendMessageTask(mInputStream, mOutputStream, message, maxResponseSize,
-                mOnResponseListener));
+                                         mOnResponseListener));
     }
 
     public interface OnResponseListener {
@@ -93,7 +94,7 @@ public class Connection {
          * A callback to notify the client that the BT device has responded with the following
          *
          * @param message the message sent back from the BT device
-         * @param e on error, the exception raised
+         * @param e       on error, the exception raised
          */
         public void onResponse(byte[] message, IOException e);
     }
@@ -143,7 +144,11 @@ public class Connection {
             byte[] response = new byte[mMaxResponseSize];
             for (int i = mMaxResponseSize; i > 0; --i) {
                 try {
-                    response[mMaxResponseSize - i] = (byte) mInStream.read();
+                    byte next = (byte) mInStream.read();
+                    if (next == Drive.RESPONSE_BAD_BYTE) {
+                        break;
+                    }
+                    response[mMaxResponseSize - i] = next;
                 } catch (IOException e) {
                     Log.e(TAG, "Error reading response", e);
                     if (mListener != null) {
@@ -151,6 +156,13 @@ public class Connection {
                     }
                 }
             }
+
+            // Flush read buffer
+            // try {
+            //     mInStream.skip(mInStream.available());
+            // } catch (IOException ignored) {
+            // }
+
             mTimeoutHandler.removeCallbacks(delayTimer);
             if (mListener != null) {
                 mListener.onResponse(response, null);

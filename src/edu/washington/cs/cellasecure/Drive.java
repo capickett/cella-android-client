@@ -111,7 +111,8 @@ public class Drive implements Parcelable {
     public static final boolean STATUS_LOCKED = true;
     public static final boolean STATUS_UNLOCKED = false;
 
-    private static final byte RESPONSE_OKAY_BYTE = 'K';
+    public static final byte RESPONSE_OKAY_BYTE = 'K';
+    public static final byte RESPONSE_BAD_BYTE = '~';
 
     private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
     private static final byte[] LOCK_REQUEST_BYTES = {'l'};

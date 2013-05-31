@@ -76,6 +76,7 @@ public class Drive implements Parcelable {
     private OnConnectListener mOnConnectListener;
     private OnLockQueryResultListener mOnLockQueryResultListener;
     private OnLockStateChangeListener mOnLockStateChangeListener;
+    private OnFactoryResetListener mOnFactoryResetListener;
 
     public Drive(BluetoothDevice bt) {
         this(bt.getName(), bt);
@@ -113,6 +114,7 @@ public class Drive implements Parcelable {
 
     private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
     private static final byte[] LOCK_REQUEST_BYTES = {'l'};
+    private static final byte[] FACTORY_RESET_BYTES = {'\0'}; // FIXME: Decide on factory reset
     private static final byte[] CONFIG_REQUEST_BYTES = {'g'};
     private static final byte[] CONFIG_SEND_BYTES = {'c'};
 
@@ -123,6 +125,18 @@ public class Drive implements Parcelable {
     private static final int PASSWD_MAX_LENGTH = 32;
 
     // CONNECTIONS
+
+    public interface OnConnectListener {
+        /**
+         * Callback to notify a client when the drive is connected
+         */
+        public void onConnect();
+
+        /**
+         * Callback to notify a client when the drive fails to connect
+         */
+        public void onConnectFailure(IOException connectException);
+    }
 
     public void setOnConnectListener(OnConnectListener listener) {
         mOnConnectListener = listener;
@@ -146,6 +160,16 @@ public class Drive implements Parcelable {
 
     // LOCK QUERY
 
+    public interface OnLockQueryResultListener {
+        /**
+         * Callback to notify a client whether a device is unlocked or not
+         *
+         * @param status         true is device is locked, false otherwise
+         * @param queryException if there was an error, this was the exception raised
+         */
+        public void onLockQueryResult(boolean status, IOException queryException);
+    }
+
     public void setOnLockQueryResultListener(OnLockQueryResultListener listener) {
         mOnLockQueryResultListener = listener;
     }
@@ -167,8 +191,8 @@ public class Drive implements Parcelable {
                 if (message[0] != LOCK_STATE_QUERY_BYTES[0]) {
                     Log.e(TAG, "Invalid response");
                     if (mOnLockQueryResultListener != null) {
-                        mOnLockQueryResultListener.onLockQueryResult(STATUS_LOCKED,
-                                new IOException("Invalid response: " + Arrays.toString(message)));
+                        mOnLockQueryResultListener.onLockQueryResult(STATUS_LOCKED, new IOException(
+                                "Invalid response: " + Arrays.toString(message)));
                     }
                 }
 
@@ -181,6 +205,17 @@ public class Drive implements Parcelable {
     }
 
     // LOCK/UNLOCK
+
+    public interface OnLockStateChangeListener {
+
+        /**
+         * Callback to notify a client whether an attempt to unlock/lock was successful
+         *
+         * @param status             true if device is locked, false otherwise
+         * @param lockStateException if there was an error, this was the exception raised
+         */
+        public void onLockStateChanged(boolean status, IOException lockStateException);
+    }
 
     public void setOnLockStateChangeListener(OnLockStateChangeListener listener) {
         mOnLockStateChangeListener = listener;
@@ -204,14 +239,15 @@ public class Drive implements Parcelable {
                 if (success && mOnLockStateChangeListener != null) {
                     mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
                 } else if (mOnLockStateChangeListener != null) {
-                    mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED,
-                            new IOException("Bad password during request"));
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, new IOException(
+                            "Bad password during request"));
                 }
             }
         });
         byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
         message[0] = PASSWD_SEND_BYTE;
-        System.arraycopy(password.getBytes(), 0, message, 1, PASSWD_MAX_LENGTH);
+        System.arraycopy(password.getBytes(), 0, message, 1,
+                         Math.min(PASSWD_MAX_LENGTH, password.length()));
         mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
@@ -233,12 +269,56 @@ public class Drive implements Parcelable {
                 if (success && mOnLockStateChangeListener != null) {
                     mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, null);
                 } else if (mOnLockStateChangeListener != null) {
-                    mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED,
-                            new IOException("Bad lock request"));
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, new IOException(
+                            "Bad lock request"));
                 }
             }
         });
         mConnection.send(LOCK_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
+    }
+
+    // FACTORY RESET
+
+    public interface OnFactoryResetListener {
+
+        /**
+         * Callback to notify client that factory reset is complete
+         *
+         * @param e if there was an error, this exception will be non-null
+         */
+        public void onFactoryReset(IOException e);
+    }
+
+    public void setOnFactoryResetListener(OnFactoryResetListener listener) {
+        mOnFactoryResetListener = listener;
+    }
+
+    public void factoryReset() {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "FactoryResetFailure";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Factory reset request failure", e);
+                    if (mOnFactoryResetListener != null) {
+                        mOnFactoryResetListener.onFactoryReset(e);
+                    }
+
+                    if (message[0] == RESPONSE_OKAY_BYTE) {
+                        if (mOnFactoryResetListener != null) {
+                            mOnFactoryResetListener.onFactoryReset(null);
+                        }
+                    } else {
+                        if (mOnFactoryResetListener != null) {
+                            mOnFactoryResetListener.onFactoryReset(
+                                    new IOException("Factory reset failed"));
+                        }
+                    }
+                }
+            }
+        });
+        mConnection.send(FACTORY_RESET_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
     private static class DriveConnectTask implements Runnable {
@@ -285,18 +365,6 @@ public class Drive implements Parcelable {
         }
     }
 
-    public interface OnConnectListener {
-        /**
-         * Callback to notify a client when the drive is connected
-         */
-        public void onConnect();
-
-        /**
-         * Callback to notify a client when the drive fails to connect
-         */
-        public void onConnectFailure(IOException connectException);
-    }
-
     public interface OnConfigurationListener {
         /**
          * Callback to notify a client when configuration is received
@@ -304,27 +372,6 @@ public class Drive implements Parcelable {
          * @param config the configuration received from Bluetooth device, null if failure
          */
         public void onConfigurationRead(DeviceConfiguration config);
-    }
-
-    public interface OnLockQueryResultListener {
-        /**
-         * Callback to notify a client whether a device is unlocked or not
-         *
-         * @param status         true is device is locked, false otherwise
-         * @param queryException if there was an error, this was the exception raised
-         */
-        public void onLockQueryResult(boolean status, IOException queryException);
-    }
-
-    public interface OnLockStateChangeListener {
-
-        /**
-         * Callback to notify a client whether an attempt to unlock/lock was successful
-         *
-         * @param status             true if device is locked, false otherwise
-         * @param lockStateException if there was an error, this was the exception raised
-         */
-        public void onLockStateChanged(boolean status, IOException lockStateException);
     }
 
     // END BLUETOOTH //////////////////////////////////////////////////////////

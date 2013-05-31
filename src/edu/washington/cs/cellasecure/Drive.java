@@ -120,6 +120,7 @@ public class Drive implements Parcelable {
 
     private static final int LOCK_STATE_QUERY_RESPONSE_SIZE = 2;
     private static final int YES_NO_QUERY_RESPONSE_SIZE = 1;
+    private static final int CONFIG_SEND_RESPONSE_SIZE = 2;
 
     private static final byte PASSWD_SEND_BYTE = 'p';
     private static final int PASSWD_MAX_LENGTH = 32;
@@ -368,16 +369,50 @@ public class Drive implements Parcelable {
                     if (mOnConfigurationListener != null) {
                         mOnConfigurationListener.onConfigurationRead(devConfig, null);
                     }
-                } else {
-                    if (mOnConfigurationListener != null) {
-                        mOnConfigurationListener.onConfigurationRead(null, new IOException(
-                                "Bad config request"));
-                    }
+                } else if (mOnConfigurationListener != null) {
+                    mOnConfigurationListener.onConfigurationRead(null, new IOException(
+                            "Bad config request"));
                 }
 
             }
         });
         mConnection.send(CONFIG_REQUEST_BYTES, CONFIG_STRING_SIZE + 1);
+    }
+
+    public void sendConfiguration(DeviceConfiguration configuration) {
+        if (configuration == null) {
+            throw new IllegalArgumentException("Configuration must not be null");
+        }
+
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "ConfigSendListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Error requesting config send", e);
+                    if (mOnConfigurationListener != null) {
+                        mOnConfigurationListener.onConfigurationWritten(e);
+                    }
+                    return;
+                }
+
+                if (message[0] != RESPONSE_OKAY_BYTE && mOnConfigurationListener != null) {
+                    mOnConfigurationListener.onConfigurationWritten(
+                            new IOException("Device did not accept request"));
+                } else if (message[1] != RESPONSE_OKAY_BYTE && mOnConfigurationListener != null) {
+                    mOnConfigurationListener.onConfigurationWritten(
+                            new IOException("Invalid configuration"));
+                } else {
+                    mOnConfigurationListener.onConfigurationWritten(null);
+                }
+            }
+        });
+        byte[] configBytes = configuration.getBytes();
+        byte[] message = new byte[configBytes.length + 1];
+        message[0] = CONFIG_SEND_BYTE;
+        System.arraycopy(configBytes, 0, message, 1, configBytes.length);
+        mConnection.send(message, CONFIG_SEND_RESPONSE_SIZE);
     }
 
     private static class DriveConnectTask implements Runnable {

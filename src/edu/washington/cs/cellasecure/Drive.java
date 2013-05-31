@@ -112,6 +112,7 @@ public class Drive implements Parcelable {
     private static final byte RESPONSE_BAD_BYTE = '~';
 
     private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
+    private static final byte[] LOCK_REQUEST_BYTES = {'l'};
     private static final byte[] CONFIG_REQUEST_BYTES = {'g'};
     private static final byte[] CONFIG_SEND_BYTES = {'c'};
 
@@ -121,16 +122,10 @@ public class Drive implements Parcelable {
     private static final byte PASSWD_SEND_BYTE = 'p';
     private static final int PASSWD_MAX_LENGTH = 32;
 
+    // CONNECTIONS
+
     public void setOnConnectListener(OnConnectListener listener) {
         mOnConnectListener = listener;
-    }
-
-    public void setOnLockQueryResultListener(OnLockQueryResultListener listener) {
-        mOnLockQueryResultListener = listener;
-    }
-
-    public void setOnLockStateChangeListener(OnLockStateChangeListener listener) {
-        mOnLockStateChangeListener = listener;
     }
 
     public void connect() {
@@ -141,32 +136,18 @@ public class Drive implements Parcelable {
         return mConnection != null && mConnection.isConnected();
     }
 
-    public void unlock(String password) {
-        mConnection.setOnResponseListener(new OnResponseListener() {
-            private static final String TAG = "UnlockListener";
+    public void disconnect() {
+        try {
+            mConnection.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Error disconnecting", e);
+        }
+    }
 
-            @Override
-            public void onResponse(byte[] message, IOException e) {
-                if (e != null) {
-                    Log.e(TAG, "Unlock request failure", e);
-                    if (mOnLockStateChangeListener != null) {
-                        mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, e);
-                    }
+    // LOCK QUERY
 
-                    boolean success = message[0] == RESPONSE_OKAY_BYTE;
-                    if (success && mOnLockStateChangeListener != null) {
-                        mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
-                    } else if (mOnLockStateChangeListener != null) {
-                        mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED,
-                                new IOException("Bad password during request"));
-                    }
-                }
-            }
-        });
-        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
-        message[0] = PASSWD_SEND_BYTE;
-        System.arraycopy(password.getBytes(), 0, message, 1, PASSWD_MAX_LENGTH);
-        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
+    public void setOnLockQueryResultListener(OnLockQueryResultListener listener) {
+        mOnLockQueryResultListener = listener;
     }
 
     public void queryLockStatus() {
@@ -180,6 +161,7 @@ public class Drive implements Parcelable {
                     if (mOnLockQueryResultListener != null) {
                         mOnLockQueryResultListener.onLockQueryResult(STATUS_LOCKED, e);
                     }
+                    return;
                 }
 
                 if (message[0] != LOCK_STATE_QUERY_BYTES[0]) {
@@ -198,12 +180,65 @@ public class Drive implements Parcelable {
         mConnection.send(LOCK_STATE_QUERY_BYTES, LOCK_STATE_QUERY_RESPONSE_SIZE);
     }
 
-    public void disconnect() {
-        try {
-            mConnection.close();
-        } catch (IOException e) {
-            Log.e(TAG, "Error disconnecting", e);
-        }
+    // LOCK/UNLOCK
+
+    public void setOnLockStateChangeListener(OnLockStateChangeListener listener) {
+        mOnLockStateChangeListener = listener;
+    }
+
+    public void unlock(String password) {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "UnlockListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Unlock request failure", e);
+                    if (mOnLockStateChangeListener != null) {
+                        mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, e);
+                    }
+                    return;
+                }
+
+                boolean success = message[0] == RESPONSE_OKAY_BYTE;
+                if (success && mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
+                } else if (mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED,
+                            new IOException("Bad password during request"));
+                }
+            }
+        });
+        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+        message[0] = PASSWD_SEND_BYTE;
+        System.arraycopy(password.getBytes(), 0, message, 1, PASSWD_MAX_LENGTH);
+        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
+    }
+
+    public void lock() {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "LockListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Lock request failure", e);
+                    if (mOnLockStateChangeListener != null) {
+                        mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, e);
+                    }
+                    return;
+                }
+
+                boolean success = message[0] == RESPONSE_OKAY_BYTE;
+                if (success && mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, null);
+                } else if (mOnLockStateChangeListener != null) {
+                    mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED,
+                            new IOException("Bad lock request"));
+                }
+            }
+        });
+        mConnection.send(LOCK_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
     private static class DriveConnectTask implements Runnable {

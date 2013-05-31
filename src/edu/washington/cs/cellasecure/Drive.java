@@ -114,13 +114,12 @@ public class Drive implements Parcelable {
 
     private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
     private static final byte[] LOCK_REQUEST_BYTES = {'l'};
-    private static final byte[] FACTORY_RESET_BYTES = {'\0'}; // FIXME: Decide on factory reset
+    private static final byte[] FACTORY_RESET_BYTES = {'r'}; // FIXME: Decide on factory reset
     private static final byte[] CONFIG_REQUEST_BYTES = {'g'};
     private static final byte CONFIG_SEND_BYTE = 'c';
 
     private static final int LOCK_STATE_QUERY_RESPONSE_SIZE = 2;
     private static final int YES_NO_QUERY_RESPONSE_SIZE = 1;
-    private static final int CONFIG_SEND_RESPONSE_SIZE = 2;
 
     private static final byte PASSWD_SEND_BYTE = 'p';
     private static final int PASSWD_MAX_LENGTH = 32;
@@ -225,6 +224,9 @@ public class Drive implements Parcelable {
     }
 
     public void unlock(String password) {
+        if (password.length() > PASSWD_MAX_LENGTH) {
+            throw new IllegalArgumentException("Password is too long!");
+        }
         mConnection.setOnResponseListener(new OnResponseListener() {
             private static final String TAG = "UnlockListener";
 
@@ -249,8 +251,7 @@ public class Drive implements Parcelable {
         });
         byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
         message[0] = PASSWD_SEND_BYTE;
-        System.arraycopy(password.getBytes(), 0, message, 1,
-                         Math.min(PASSWD_MAX_LENGTH, password.length()));
+        System.arraycopy(password.getBytes(), 0, message, 1, password.length());
         mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
@@ -399,11 +400,8 @@ public class Drive implements Parcelable {
 
                 if (message[0] != RESPONSE_OKAY_BYTE && mOnConfigurationListener != null) {
                     mOnConfigurationListener.onConfigurationWritten(
-                            new IOException("Device did not accept request"));
-                } else if (message[1] != RESPONSE_OKAY_BYTE && mOnConfigurationListener != null) {
-                    mOnConfigurationListener.onConfigurationWritten(
-                            new IOException("Invalid configuration"));
-                } else {
+                            new IOException("Device did not accept config"));
+                } else if (mOnConfigurationListener != null) {
                     mOnConfigurationListener.onConfigurationWritten(null);
                 }
             }
@@ -412,7 +410,7 @@ public class Drive implements Parcelable {
         byte[] message = new byte[configBytes.length + 1];
         message[0] = CONFIG_SEND_BYTE;
         System.arraycopy(configBytes, 0, message, 1, configBytes.length);
-        mConnection.send(message, CONFIG_SEND_RESPONSE_SIZE);
+        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
     private static class DriveConnectTask implements Runnable {

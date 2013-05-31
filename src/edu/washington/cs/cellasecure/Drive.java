@@ -77,6 +77,7 @@ public class Drive implements Parcelable {
     private OnLockQueryResultListener mOnLockQueryResultListener;
     private OnLockStateChangeListener mOnLockStateChangeListener;
     private OnFactoryResetListener mOnFactoryResetListener;
+    private OnConfigurationListener mOnConfigurationListener;
 
     public Drive(BluetoothDevice bt) {
         this(bt.getName(), bt);
@@ -110,19 +111,20 @@ public class Drive implements Parcelable {
     public static final boolean STATUS_UNLOCKED = false;
 
     private static final byte RESPONSE_OKAY_BYTE = 'K';
-    private static final byte RESPONSE_BAD_BYTE = '~';
 
     private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
     private static final byte[] LOCK_REQUEST_BYTES = {'l'};
     private static final byte[] FACTORY_RESET_BYTES = {'\0'}; // FIXME: Decide on factory reset
     private static final byte[] CONFIG_REQUEST_BYTES = {'g'};
-    private static final byte[] CONFIG_SEND_BYTES = {'c'};
+    private static final byte CONFIG_SEND_BYTE = 'c';
 
     private static final int LOCK_STATE_QUERY_RESPONSE_SIZE = 2;
     private static final int YES_NO_QUERY_RESPONSE_SIZE = 1;
 
     private static final byte PASSWD_SEND_BYTE = 'p';
     private static final int PASSWD_MAX_LENGTH = 32;
+
+    private static final int CONFIG_STRING_SIZE = 1;
 
     // CONNECTIONS
 
@@ -295,7 +297,7 @@ public class Drive implements Parcelable {
 
     public void factoryReset() {
         mConnection.setOnResponseListener(new OnResponseListener() {
-            private static final String TAG = "FactoryResetFailure";
+            private static final String TAG = "FactoryResetListener";
 
             @Override
             public void onResponse(byte[] message, IOException e) {
@@ -304,21 +306,78 @@ public class Drive implements Parcelable {
                     if (mOnFactoryResetListener != null) {
                         mOnFactoryResetListener.onFactoryReset(e);
                     }
+                    return;
+                }
 
-                    if (message[0] == RESPONSE_OKAY_BYTE) {
-                        if (mOnFactoryResetListener != null) {
-                            mOnFactoryResetListener.onFactoryReset(null);
-                        }
-                    } else {
-                        if (mOnFactoryResetListener != null) {
-                            mOnFactoryResetListener.onFactoryReset(
-                                    new IOException("Factory reset failed"));
-                        }
+                if (message[0] == RESPONSE_OKAY_BYTE) {
+                    if (mOnFactoryResetListener != null) {
+                        mOnFactoryResetListener.onFactoryReset(null);
+                    }
+                } else {
+                    if (mOnFactoryResetListener != null) {
+                        mOnFactoryResetListener.onFactoryReset(
+                                new IOException("Factory reset failed"));
                     }
                 }
             }
         });
         mConnection.send(FACTORY_RESET_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
+    }
+
+    // CONFIGURATION
+
+    public interface OnConfigurationListener {
+        /**
+         * Callback to notify a client when configuration is received
+         *
+         * @param config the configuration received from Bluetooth device, null if failure
+         * @param e      if there is an error, this will be non-null
+         */
+        public void onConfigurationRead(DeviceConfiguration config, IOException e);
+
+        /**
+         * Callback to notify a client when configuration is sent
+         *
+         * @param e if there is an error, this will be non-null
+         */
+        public void onConfigurationWritten(IOException e);
+    }
+
+    public void setOnConfigurationListener(OnConfigurationListener listener) {
+        mOnConfigurationListener = listener;
+    }
+
+    public void readConfiguration() {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "ConfigReadListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Error requesting config", e);
+                    if (mOnConfigurationListener != null) {
+                        mOnConfigurationListener.onConfigurationRead(null, e);
+                    }
+                    return;
+                }
+
+                if (message[0] == RESPONSE_OKAY_BYTE) {
+                    byte[] config = new byte[CONFIG_STRING_SIZE];
+                    System.arraycopy(message, 1, config, 0, CONFIG_STRING_SIZE);
+                    DeviceConfiguration devConfig = new DeviceConfiguration(config);
+                    if (mOnConfigurationListener != null) {
+                        mOnConfigurationListener.onConfigurationRead(devConfig, null);
+                    }
+                } else {
+                    if (mOnConfigurationListener != null) {
+                        mOnConfigurationListener.onConfigurationRead(null, new IOException(
+                                "Bad config request"));
+                    }
+                }
+
+            }
+        });
+        mConnection.send(CONFIG_REQUEST_BYTES, CONFIG_STRING_SIZE + 1);
     }
 
     private static class DriveConnectTask implements Runnable {
@@ -363,15 +422,6 @@ public class Drive implements Parcelable {
                 mListener.onConnect();
             }
         }
-    }
-
-    public interface OnConfigurationListener {
-        /**
-         * Callback to notify a client when configuration is received
-         *
-         * @param config the configuration received from Bluetooth device, null if failure
-         */
-        public void onConfigurationRead(DeviceConfiguration config);
     }
 
     // END BLUETOOTH //////////////////////////////////////////////////////////

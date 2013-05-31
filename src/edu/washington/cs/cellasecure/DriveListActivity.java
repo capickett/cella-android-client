@@ -245,20 +245,22 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         public void onDiscovery(BluetoothDevice device) {
             Log.d(TAG, "onDiscovery called");
             Drive drive = new Drive(device);
-            if (mPairedOutOfRangeDrives.remove(drive)) {
-                mPairedInRangeDrives.add(drive);
-            } else {
-                mInRangeDrives.add(drive);
-            }
-
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mDriveScanIndicator.setVisibility(View.GONE);
-                    mDriveListContainer.setVisibility(View.VISIBLE);
+            if (drive.getName().startsWith("cella") && drive.getAddress().startsWith("00:06:66")) {
+                if (mPairedOutOfRangeDrives.remove(drive)) {
+                    mPairedInRangeDrives.add(drive);
+                } else {
+                    mInRangeDrives.add(drive);
                 }
-            });
-            notifyDataSetChanged();
+    
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mDriveScanIndicator.setVisibility(View.GONE);
+                        mDriveListContainer.setVisibility(View.VISIBLE);
+                    }
+                });
+                notifyDataSetChanged();
+            }
         }
 
         @Override

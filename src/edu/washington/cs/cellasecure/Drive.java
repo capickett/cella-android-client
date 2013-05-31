@@ -27,6 +27,7 @@ import edu.washington.cs.cellasecure.bluetooth.Connection.OnResponseListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.UUID;
 
 public class Drive implements Parcelable {
@@ -74,6 +75,7 @@ public class Drive implements Parcelable {
 
     private OnConnectListener mOnConnectListener;
     private OnLockQueryResultListener mOnLockQueryResultListener;
+    private OnLockStateChangeListener mOnLockStateChangeListener;
 
     public Drive(BluetoothDevice bt) {
         this(bt.getName(), bt);
@@ -103,11 +105,18 @@ public class Drive implements Parcelable {
 
     // BEGIN BLUETOOTH ////////////////////////////////////////////////////////
 
-    private static final byte[] LOCK_STATE_QUERY_BYTE = {'?'};
-    private static final byte[] CONFIG_REQUEST_BYTE = {'g'};
-    private static final byte[] CONFIG_SEND_BYTE = {'c'};
+    public static final boolean STATUS_LOCKED = true;
+    public static final boolean STATUS_UNLOCKED = false;
+
+    private static final byte RESPONSE_OKAY_BYTE = 'K';
+    private static final byte RESPONSE_BAD_BYTE = '~';
+
+    private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
+    private static final byte[] CONFIG_REQUEST_BYTES = {'g'};
+    private static final byte[] CONFIG_SEND_BYTES = {'c'};
 
     private static final int LOCK_STATE_QUERY_RESPONSE_SIZE = 2;
+    private static final int YES_NO_QUERY_RESPONSE_SIZE = 1;
 
     private static final byte PASSWD_SEND_BYTE = 'p';
     private static final int PASSWD_MAX_LENGTH = 32;
@@ -120,12 +129,44 @@ public class Drive implements Parcelable {
         mOnLockQueryResultListener = listener;
     }
 
+    public void setOnLockStateChangeListener(OnLockStateChangeListener listener) {
+        mOnLockStateChangeListener = listener;
+    }
+
     public void connect() {
         new DriveConnectTask(this, mOnConnectListener).run();
     }
 
     public boolean isConnected() {
         return mConnection != null && mConnection.isConnected();
+    }
+
+    public void unlock(String password) {
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "UnlockListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Unlock request failure", e);
+                    if (mOnLockStateChangeListener != null) {
+                        mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, e);
+                    }
+
+                    boolean success = message[0] == RESPONSE_OKAY_BYTE;
+                    if (success && mOnLockStateChangeListener != null) {
+                        mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
+                    } else if (mOnLockStateChangeListener != null) {
+                        mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED,
+                                new IOException("Bad password during request"));
+                    }
+                }
+            }
+        });
+        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+        message[0] = PASSWD_SEND_BYTE;
+        System.arraycopy(password.getBytes(), 0, message, 1, PASSWD_MAX_LENGTH);
+        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
     public void queryLockStatus() {
@@ -137,15 +178,15 @@ public class Drive implements Parcelable {
                 if (e != null) {
                     Log.e(TAG, "Send failure", e);
                     if (mOnLockQueryResultListener != null) {
-                        mOnLockQueryResultListener.onLockQueryResult(true, e);
+                        mOnLockQueryResultListener.onLockQueryResult(STATUS_LOCKED, e);
                     }
                 }
 
-                if (message[0] != '?') {
+                if (message[0] != LOCK_STATE_QUERY_BYTES[0]) {
                     Log.e(TAG, "Invalid response");
                     if (mOnLockQueryResultListener != null) {
-                        mOnLockQueryResultListener.onLockQueryResult(true,
-                                new IOException("Invalid response: " + message.toString()));
+                        mOnLockQueryResultListener.onLockQueryResult(STATUS_LOCKED,
+                                new IOException("Invalid response: " + Arrays.toString(message)));
                     }
                 }
 
@@ -154,7 +195,7 @@ public class Drive implements Parcelable {
                 }
             }
         });
-        mConnection.send(LOCK_STATE_QUERY_BYTE, LOCK_STATE_QUERY_RESPONSE_SIZE);
+        mConnection.send(LOCK_STATE_QUERY_BYTES, LOCK_STATE_QUERY_RESPONSE_SIZE);
     }
 
     public void disconnect() {
@@ -238,6 +279,17 @@ public class Drive implements Parcelable {
          * @param queryException if there was an error, this was the exception raised
          */
         public void onLockQueryResult(boolean status, IOException queryException);
+    }
+
+    public interface OnLockStateChangeListener {
+
+        /**
+         * Callback to notify a client whether an attempt to unlock/lock was successful
+         *
+         * @param status             true if device is locked, false otherwise
+         * @param lockStateException if there was an error, this was the exception raised
+         */
+        public void onLockStateChanged(boolean status, IOException lockStateException);
     }
 
     // END BLUETOOTH //////////////////////////////////////////////////////////

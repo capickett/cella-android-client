@@ -173,6 +173,11 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         public long getItemId(int position) {
             return position;
         }
+        
+        @Override
+        public boolean isEnabled(int position) {
+            return (position < mPairedInRangeDrives.size() + mInRangeDrives.size());
+        }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {

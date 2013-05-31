@@ -14,11 +14,15 @@
     License for the specific language governing permissions and limitations under
     the License.
 -->
-<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_height="wrap_content"
+             android:layout_width="56dp"
+             android:minWidth="56dp">
 
-    <item
-        android:id="@+id/menu_settings"
-        android:showAsAction="never"
-        android:title="@string/menu_settings"/>
+    <ProgressBar
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="center"
+        style="?android:indeterminateProgressStyle"/>
 
-</menu>
+</FrameLayout>

@@ -16,10 +16,6 @@
 
 package edu.washington.cs.cellasecure.bluetooth;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -27,38 +23,43 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Bluetooth Utility library for connecting Android mobile applications with
  * Bluetooth devices.
- * 
+ * <p/>
  * requires BLUETOOTH and BLUETOOTH_ADMIN
- * 
+ *
  * @author CellaSecure
  */
 public class BluetoothUtility {
 
+    public static final String TAG = "BluetoothUtility";
     public static final int BLUETOOTH_REQUEST_ID = 1337;
 
-    private static final UUID     mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
-    private BluetoothAdapter      mBluetoothAdapter;    // Connection point for Bluetooth devices
-    private BroadcastReceiver     mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
-    private Activity              mActivity;            // Parent activity of this instance
+    private BluetoothAdapter mBluetoothAdapter;    // Connection point for Bluetooth devices
+    private BroadcastReceiver mBroadcastReceiver;   // Broadcast receiver to listen for various callbacks
+    private Activity mActivity;            // Parent activity of this instance
     private List<BluetoothDevice> mDiscoveredDevices;   // List of found devices that have not been paired
 
-    private OnDiscoveryListener   mDiscoveryListener;   // Listener to handle device discovery
+    private OnDiscoveryListener mDiscoveryListener;   // Listener to handle device discovery
     private OnDiscoveryFinishedListener mDiscoveryFinishedListener; // Listener to handle discovery finished
-    private OnConnectListener     mConnectListener;     // Listener to handle connections
-    
+
+
     /**
      * Constructs a new Bluetooth utility to manage devices
-     * 
-     * @param activity
-     *            Context for mobile application
+     *
+     * @param activity Context for mobile application
      */
     public BluetoothUtility(Activity activity) {
+        Log.d(TAG, "Bluetooth Utility constructor");
         mActivity = activity;
+        if (mActivity == null)
+            throw new IllegalArgumentException("An activity is required to register BT receivers!");
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null)
             throw new IllegalStateException("Bluetooth not supported");
@@ -74,25 +75,34 @@ public class BluetoothUtility {
                     if (mDiscoveryListener != null)
                         mDiscoveryListener.onDiscovery(device);
                 } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                    mActivity.unregisterReceiver(mBroadcastReceiver);
                     if (mDiscoveryFinishedListener != null)
                         mDiscoveryFinishedListener.onDiscoveryFinished();
                 }
             }
         };
-        IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+        Log.d(TAG, "BluetoothUtility created");
     }
 
     /**
      * Start a discovery for in-range Bluetooth devices, scanning
      * for at most 12 seconds.  When a device is found will call
      * onDiscovery with an updated list of found devices.
+     *
      * @see OnDiscoveryListener
      */
     public void scanForDevices() {
         if (!mBluetoothAdapter.isEnabled())
             throw new IllegalStateException("Bluetooth must be enabled");
-        if (mBluetoothAdapter.isDiscovering()) mBluetoothAdapter.cancelDiscovery();
+
+        if (mBluetoothAdapter.isDiscovering())
+            mBluetoothAdapter.cancelDiscovery();
+
+        IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+        IntentFilter discovery_finished_filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
+
         mBluetoothAdapter.startDiscovery();
     }
 
@@ -102,23 +112,26 @@ public class BluetoothUtility {
     public boolean isEnabled() {
         return mBluetoothAdapter.isEnabled();
     }
-    
+
     /**
-     * ENables bluetooth via ACTION_REQUEST_ENABLE intent
-     *
+     * Enables bluetooth via ACTION_REQUEST_ENABLE intent
      */
     public void enableBluetooth() {
-        Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        mActivity.startActivityForResult(i, BLUETOOTH_REQUEST_ID);
+        if (mActivity != null) {
+            Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            mActivity.startActivityForResult(i, BLUETOOTH_REQUEST_ID);
+        } else {
+            throw new IllegalStateException("Activity must be non-null");
+        }
     }
-    
+
     /**
      * @return true if Bluetooth adapter is discovering, else false
      */
     public boolean isScanning() {
         return mBluetoothAdapter.isDiscovering();
     }
-    
+
     /**
      * Cancel device discovery
      */
@@ -128,7 +141,7 @@ public class BluetoothUtility {
 
     /**
      * Accessor for both bonded and discovered devices
-     * 
+     *
      * @return a list of all discovered and bonded devices
      * @throws IllegalStateException if Bluetooth is not enabled
      */
@@ -142,7 +155,7 @@ public class BluetoothUtility {
 
     /**
      * Accessor for bonded devices
-     * 
+     *
      * @return a list of all bonded devices
      * @throws IllegalStateException if Bluetooth is not enabled
      */
@@ -154,7 +167,7 @@ public class BluetoothUtility {
 
     /**
      * Accessor for discovered devices
-     * 
+     *
      * @return a list of all discovered devices
      * @throws IllegalStateException if Bluetooth is not enabled
      */
@@ -164,84 +177,75 @@ public class BluetoothUtility {
 
     /**
      * Create a bond with the given device
-     * 
-     * @param device
-     *            the Bluetooth device to bond with
+     *
+     * @param device the Bluetooth device to bond with
      * @return true if already paired or on successful pairing, false otherwise
      */
     public boolean pairDevice(BluetoothDevice device) {
         switch (device.getBondState()) {
-        case (BluetoothDevice.BOND_BONDED):
-            return true;
-        case (BluetoothDevice.BOND_NONE):
-            try {
-                return ( Boolean ) (device.getClass()).getMethod("createBond").invoke(device);
-            } catch (Exception e) {
+            case (BluetoothDevice.BOND_BONDED):
+                return true;
+            case (BluetoothDevice.BOND_NONE):
+                try {
+                    return (Boolean) (device.getClass()).getMethod("createBond").invoke(device);
+                } catch (Exception e) {
+                    return false;
+                }
+                // case (BluetoothDevice.BOND_BONDING): // taken care of by default
+            default:
                 return false;
-            }
-            // case (BluetoothDevice.BOND_BONDING): // taken care of by default
-        default:
-            return false;
         }
     }
 
     /**
      * Erase the bond with the given device
-     * 
-     * @param device
-     *            the Bluetooth device to unpair from
+     *
+     * @param device the Bluetooth device to unpair from
      * @return true if already unpaired or on successful unpairing, else false
      */
     public boolean unpairDevice(BluetoothDevice device) {
         switch (device.getBondState()) {
-        case (BluetoothDevice.BOND_BONDED):
-            try {
-                return ( Boolean ) (device.getClass()).getMethod("removeBond").invoke(device);
-            } catch (Exception e) {
-                return false;
-            }
-        case (BluetoothDevice.BOND_NONE):
-            return true;
+            case (BluetoothDevice.BOND_BONDED):
+                try {
+                    return (Boolean) (device.getClass()).getMethod("removeBond").invoke(device);
+                } catch (Exception e) {
+                    return false;
+                }
+            case (BluetoothDevice.BOND_NONE):
+                return true;
             // case (BluetoothDevice.BOND_BONDING): // taken care of by default
-        default:
-            return false;
+            default:
+                return false;
         }
-    }
-
-    /**
-     * Attempt to establish a connection with the given device
-     * 
-     * @param device
-     *            the Bluetooth device to connect to
-     * @throws IllegalStateException if Bluetooth is not enabled
-     */
-    public void connect(BluetoothDevice device) {
-        if (!mBluetoothAdapter.isEnabled()) 
-            throw new IllegalStateException("Bluetooth must be enabled");
-        new Thread(new ConnectionThread(
-                device, mBluetoothAdapter, mUUID, mConnectListener)).start();
     }
     
     /* For Android */
-    
+
     public void onPause() {
-        mActivity.unregisterReceiver(mBroadcastReceiver);
+        try {
+            if (mActivity != null)
+                mActivity.unregisterReceiver(mBroadcastReceiver);
+        } catch (IllegalArgumentException e) { /* Do nothing */ }
     }
-    
+
     public void onResume() {
-        IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+        if (mActivity != null) {
+            IntentFilter action_found_filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            mActivity.registerReceiver(mBroadcastReceiver, action_found_filter);
+            IntentFilter discovery_finished_filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            mActivity.registerReceiver(mBroadcastReceiver, discovery_finished_filter);
+        }
     }
     
     /* Callback setters */
-    
-    public void setOnDiscoveryListener (OnDiscoveryListener dl) {
+
+    public void setOnDiscoveryListener(OnDiscoveryListener dl) {
         mDiscoveryListener = dl;
     }
-    
-    public void setOnConnectListener (OnConnectListener cl) {
-        mConnectListener = cl;
-    }
+
+    //    public void setOnConnectListener (OnConnectListener cl) {
+    //        mConnectListener = cl;
+    //    }
 
     public void setOnDiscoveryFinishedListener(OnDiscoveryFinishedListener dfl) {
         this.mDiscoveryFinishedListener = dfl;
@@ -252,22 +256,21 @@ public class BluetoothUtility {
     public interface OnDiscoveryListener {
         /**
          * Callback to notify a client when a device is found
-         * 
-         * @param bluetoothDevices
-         *            the list of discovered Bluetooth devices
+         *
+         * @param device the discovered bluetooth device
          */
         public void onDiscovery(BluetoothDevice device);
     }
-    
-    public interface OnConnectListener {
-        /**
-         * Callback to return an established connection
-         * 
-         * @param connection
-         *            the connection to the Bluetooth device
-         */
-        public void onConnected(Connection connection);
-    }
+
+    //    public interface OnConnectListener {
+    //        /**
+    //         * Callback to return an established connection
+    //         *
+    //         * @param connection
+    //         *            the connection to the Bluetooth device
+    //         */
+    //        public void onConnect(Connection connection);
+    //    }
 
     public interface OnDiscoveryFinishedListener {
         /**

@@ -26,21 +26,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive;
+import edu.washington.cs.cellasecure.DriveManageActivity;
 import edu.washington.cs.cellasecure.R;
-import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
-import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility.OnConnectListener;
-import edu.washington.cs.cellasecure.bluetooth.Connection;
 
-public class DriveUnlockFragment extends Fragment implements View.OnClickListener,
-        OnConnectListener{
+public class DriveUnlockFragment extends Fragment implements View.OnClickListener {
 
-    private BluetoothUtility mBT;
     private Button mLockStatus;
     private View mDriveUnlockView;
     private Drive mDrive;
-
-    private static Connection mConnection;
 
     /*
      * (non-Javadoc)
@@ -51,8 +46,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_drive_unlock,
-                container, false);
+        return inflater.inflate(R.layout.fragment_drive_unlock, container, false);
     }
 
 
@@ -66,6 +60,7 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         super.onActivityCreated(savedInstanceState);
 
         Activity activity = getActivity();
+        activity.findViewById(R.id.drive_loading_progress).setVisibility(View.GONE);
         mLockStatus = (Button) activity.findViewById(R.id.fragment_drive_unlock_status);
         mLockStatus.setOnClickListener(this);
         mDriveUnlockView = (View) activity.findViewById(R.id.drive_manage_fragment_container);
@@ -73,52 +68,21 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
 
         Bundle args = getArguments();
         mDrive = args.getParcelable(Drive.KEY_BUNDLE_DRIVE);
+        boolean locked = args.getBoolean(DriveManageActivity.KEY_BUNDLE_LOCK_STATUS);
 
-        if (mDrive.isLocked()) {
-            mLockStatus.setText(R.string.device_manage_lock_status_locked);
-        } else {
-            mLockStatus.setText(R.string.device_manage_lock_status_unlocked);
-        }
-        mBT = new BluetoothUtility(activity);
 
-        mBT.setOnConnectListener(this);
-
-        
-        mBT.connect(mDrive.getDevice());
-        Log.e("Foo", "After connect");
-    }
-    
-    public void onConnected (Connection connection) {
-        if (connection == null) Log.e("Foo", "connection is null");
-        assert (connection != null);
-        mConnection = connection;
-        Log.e("Foo", "onConnected: " + mConnection.toString());
-    }
-    
-    public void onResume() {
-        super.onResume();
-        if (mBT != null && mConnection == null)
-            mBT.connect(mDrive.getDevice());
-    }
-    
-    public void onStop() {
-        super.onStop();
-        if (mConnection != null)
-            mConnection.disconnect();
+        mLockStatus.setText(locked ? R.string.device_manage_lock_status_locked : R.string
+                .device_manage_lock_status_unlocked);
     }
 
     @Override
     public void onClick(View v) {
         Log.e("Foo", "onClick");
         if (v.equals(mLockStatus) || v.equals(mDriveUnlockView)) {
-            if (mConnection != null) {
-                Log.e("Foo", "Send");
-                mConnection.sendPassword("12345678");
-                Log.e("Foo", "Sent");
-            }
+            Toast.makeText(getActivity(), "TODO", Toast.LENGTH_SHORT);
         }
     }
-    
+
     public void isLocked(BluetoothDevice device, boolean status) {
         Activity parent = getActivity();
         TextView lsi = (TextView) parent.findViewById(R.id.drive_manage_lock_status);

@@ -21,21 +21,36 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent">
 
-    <ListView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:id="@android:id/list"
-        android:layout_weight="1"
-        android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp"
-        tools:listitem="@layout/list_drive"/>
+    <ProgressBar
+        android:id="@android:id/progress"
+        android:layout_gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"/>
 
-    <fragment
-        android:id="@android:id/empty"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:orientation="vertical"
+        android:id="@+id/list_drive_container"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:name="edu.washington.cs.cellasecure.fragments.DriveNoDevicesFragment"
-        tools:layout="@layout/fragment_drive_manage_no_devices"/>
+        android:layout_width="match_parent"
+        android:visibility="gone">
 
+        <ListView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:id="@android:id/list"
+            android:layout_weight="1"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            tools:listitem="@layout/list_drive"/>
+
+        <fragment
+            android:id="@android:id/empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:name="edu.washington.cs.cellasecure.fragments.DriveNoDevicesFragment"
+            tools:layout="@layout/fragment_drive_manage_no_devices"/>
+
+    </LinearLayout>
 </LinearLayout>

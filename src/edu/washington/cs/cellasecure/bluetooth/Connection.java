@@ -16,311 +16,145 @@
 
 package edu.washington.cs.cellasecure.bluetooth;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
+import android.util.Log;
+
+import java.io.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.util.Log;
 
 /**
  * Utility for managing and executing operations over a connection to a
  * Bluetooth device
- * 
+ *
  * @author CellaSecure
  */
 public class Connection {
-    
+
     @Override
     public String toString() {
-        return "Connection [mConfig=" + mConfig + ", mBluetoothSocket=" + mBluetoothSocket + ", mInputStream=" + mInputStream + ", mOutputStream=" + mOutputStream + ", mWriteListener="
-                + mWriteListener + ", mConfigListener=" + mConfigListener + ", mLockListener=" + mLockListener + "]";
+        return "Connection [mBluetoothSocket=" + mBluetoothSocket + ", " +
+                "mInputStream=" + mInputStream + ", mOutputStream=" + mOutputStream + "]";
     }
 
-    private static final byte LOCK_STATE_QUERY_BYTE = '?';
-    private static final byte CONFIG_REQUEST_BYTE   = 'g'; 
-    private static final byte CONFIG_SEND_BYTE      = 'c';
-    private static final byte PASSWD_REQUEST_BYTE   = 'p';
-    private static final int  PASSWD_MAX_LENGTH     = 32;
-    
     private static ExecutorService sPool = Executors.newSingleThreadExecutor();
 
-    private DeviceConfiguration mConfig;
-    private BluetoothSocket     mBluetoothSocket;
-    private InputStream         mInputStream;
-    private OutputStream        mOutputStream;
-    
-    private OnWriteFeedbackListener     mWriteListener;
-    private OnConfigurationListener     mConfigListener;
-    private OnLockQueryListener         mLockListener;
-    
+    private BluetoothSocket mBluetoothSocket;
+    private BufferedInputStream mInputStream;
+    private BufferedOutputStream mOutputStream;
+    private OnResponseListener mOnResponseListener;
+
     /**
      * Construct a new connection over the given socket The socket must be
      * established.  Calls onConfigurationRead with the devices configuration
      * if successful, otherwise calls with null.
-     * @see BluetoothListener
-     * 
-     * @param socket
-     *            the BluetoothSocket which the device is connected to
-     * @throws IllegalArgumentException
-     *             if socket is null
+     *
+     * @param socket the BluetoothSocket which the device is connected to
+     * @throws IllegalArgumentException if socket is not connected
      */
     public Connection(BluetoothSocket socket) {
-        if (socket == null) {
-            throw new IllegalArgumentException("Socket must be established");
+        if (!socket.isConnected()) {
+            throw new IllegalArgumentException("Socket must be connected");
         }
         mBluetoothSocket = socket;
-        mConfig          = null;
 
         InputStream is = null;
         OutputStream os = null;
-        if (mBluetoothSocket != null) {
-            try {
-                is = mBluetoothSocket.getInputStream();
-                os = mBluetoothSocket.getOutputStream();
-            } catch (Exception e) { /* streams remain null */ }
-        }
-        mInputStream = is;
-        mOutputStream = os;
-
-        mWriteListener  = null;
-        mConfigListener = null;
-        mLockListener    = null;
-
-        getConfiguration();
-    }
-
-    /**
-     * Gracefully end connection with a Bluetooth device
-     */
-    public void disconnect() {
         try {
-            mBluetoothSocket.close();
-            mBluetoothSocket = null;
-        } catch (Exception e) { /* continue */ }
+            is = mBluetoothSocket.getInputStream();
+            os = mBluetoothSocket.getOutputStream();
+        } catch (Exception e) { /* streams remain null */ }
+
+        mInputStream = new BufferedInputStream(is);
+        mOutputStream = new BufferedOutputStream(os);
     }
 
-    /**
-     * Gets configuration for Bluetooth device, returning it through
-     * the onConfigurationRead callback.
-     * @see BluetoothListener
-     */
-    public void getConfiguration() {
-        if (mConfig != null)
-            if (mConfigListener != null) mConfigListener.onConfigurationRead(mConfig);
-        else
-            sPool.execute(new InitThread(mConfigListener));
+    public boolean isConnected() {
+        return mBluetoothSocket.isConnected();
     }
-    
-    /**
-     * Sends the current configuration to the device, updating the device if necessary
-     */
-    public void sendConfiguration() {
-        sPool.execute(new WriteThread(cons(CONFIG_SEND_BYTE, mConfig.getBytes()),
-                mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
+
+    public void close() throws IOException {
+        mBluetoothSocket.close();
     }
-    
-    /**
-     * Sends a password to unlock the drive over Bluetooth.  If this fails, will
-     * call onWriteError with an appropriate message.
-     * @see BluetoothListener.onWriteError(String message)
-     * 
-     * @param passwd  The user's password which unlocks the drive
-     * TODO: callback on correct/incorrect password
-     *
-     */
-    public void sendPassword(String passwd) {
-        if (mBluetoothSocket != null) {
-            if (passwd.length() > PASSWD_MAX_LENGTH)
-                throw new IllegalArgumentException("password is too long");
-            byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
-            message[0] = PASSWD_REQUEST_BYTE;
-            System.arraycopy(passwd.getBytes(), 0, message, 1, passwd.length());
-            sPool.execute(new WriteThread(message,
-                    mBluetoothSocket.getRemoteDevice(), mWriteListener, mLockListener));
+
+
+    public void setOnResponseListener(OnResponseListener listener) {
+        mOnResponseListener = listener;
+    }
+
+    public void send(byte[] message, int maxResponseSize) {
+        sPool.submit(new SendMessageTask(mInputStream, mOutputStream, message, maxResponseSize,
+                mOnResponseListener));
+    }
+
+    public interface OnResponseListener {
+        /**
+         * A callback to notify the client that the BT device has responded with the following
+         *
+         * @param message the message sent back from the BT device
+         * @param e on error, the exception raised
+         */
+        public void onResponse(byte[] message, IOException e);
+    }
+
+    private static class SendMessageTask implements Runnable {
+
+        private static final String TAG = "SendMessageTask";
+
+        private static final int MAX_READ_TIME_MILLIS = 5000;
+
+        private final int mMaxResponseSize;
+        private final InputStream mInStream;
+        private final OutputStream mOutStream;
+        private final byte[] mMessage;
+        private final OnResponseListener mListener;
+        private final Handler mTimeoutHandler = new Handler();
+
+        public SendMessageTask(InputStream is, OutputStream os, byte[] message,
+                               int maxResponseSize, OnResponseListener listener) {
+            mInStream = is;
+            mOutStream = os;
+            mMessage = message;
+            mMaxResponseSize = maxResponseSize;
+            mListener = listener;
         }
-    }
 
-    /**
-     * Sets the given fieldName to the given value for this device
-     * 
-     * @param fieldName
-     *            the name of the configuration field to be modified
-     * @param value
-     *            the new value for fieldName in the configuration
-     */
-    public void setConfiguration(String fieldName, String value) {
-        mConfig.setOption(fieldName, value);
-    }
-
-    /**
-     * Sets the configuration to the given device from a pre-existing
-     * configuration;
-     * 
-     * @param config
-     *            the new configuration object for the current device
-     */
-    public void setConfiguration(DeviceConfiguration config) {
-        mConfig = config;
-    }
-    
-    /**
-     * Sets the handler for configuration related callbacks
-     * @param cl    the listener to handle config callbacks
-     */
-    public void setOnConfigurationListener (OnConfigurationListener cl) {
-        mConfigListener = cl;
-    }
-    
-    /**
-     * Sets the handler for write response related callbacks
-     * @param wl    the listener to handle write related callbacks
-     */
-    public void setOnWriteFeedbackListener (OnWriteFeedbackListener wl) {
-        mWriteListener = wl;
-    }
-    
-    /**
-     * Sets the handler for the lock response callback
-     * @param ll    the listener to handle lock status callbacks
-     */
-    public void setOnLockQueryListener (OnLockQueryListener ll) {
-        mLockListener = ll;
-    }
-    
-    /**
-     * Combine header and body into one byte array
-     * @param header    byte to be front of list
-     * @param body      rest of message
-     * @return          header::body
-     */
-    private byte[] cons(byte header, byte[] body) {
-        byte[] packet = new byte[body.length + 1];
-        packet[0] = header;
-        System.arraycopy(body, 0, packet, 1, body.length);
-        return packet;
-    }
-    
-    // Asynchronous Helpers //
-
-    private class InitThread implements Runnable {
-        private final int    CONFIG_RESPONSE_LENGTH  = 2;
-        
-        private OnConfigurationListener mListener;
-        
-        public InitThread(OnConfigurationListener cl) {
-            mListener = cl;
-        }
+        @Override
         public void run() {
             try {
-                mOutputStream.write(CONFIG_REQUEST_BYTE);
-                byte[] buf = new byte[CONFIG_RESPONSE_LENGTH];
-                mInputStream.read(buf);
-                if (buf[0] == 'K') 
-                    mConfig = new DeviceConfiguration(new String(buf));
-                else
-                    throw new IOException("Bad configuration");
+                mOutStream.write(mMessage);
+                mOutStream.flush();
             } catch (IOException e) {
-                mConfig = null;
-            } finally {
-                if (mListener != null) mListener.onConfigurationRead(mConfig);
+                Log.e(TAG, "Error sending message", e);
+                if (mListener != null) {
+                    mListener.onResponse(null, e);
+                }
             }
-        }
-    }
-    
-    private class WriteThread implements Runnable {
-        private final int    MAX_WRITE_RESPONSE_LENGTH = 2;
-        private final int    CONNECT_RETRY_TIMES       = 2;
-        
-        private final byte   WRITE_RESPONSE_OKAY       = 'K';
-//        private final byte   DEVICE_UNLOCKED_RESPONSE  = 'U';
-        private final byte   DEVICE_LOCKED_RESPONSE     = 'L';
-        
-        private byte[]                      mMessage;
-        private BluetoothDevice             mDevice;
-        private OnWriteFeedbackListener     mWriteListener;
-        private OnLockQueryListener         mLockListener;
-        
-        public WriteThread(byte[] message, 
-                BluetoothDevice device,
-                OnWriteFeedbackListener wlistener,
-                OnLockQueryListener llistener) {
-            mDevice        = device;
-            mWriteListener = wlistener;
-            mLockListener  = llistener;
-            mMessage       = message;
-        }
-        public void run() {
-            int attempt = 0;
-            while (attempt < CONNECT_RETRY_TIMES) {
+
+            Runnable delayTimer = new Runnable() {
+                @Override
+                public void run() {
+                    Log.e(TAG, "Read timeout");
+                }
+            };
+            mTimeoutHandler.postDelayed(delayTimer, MAX_READ_TIME_MILLIS);
+
+            byte[] response = new byte[mMaxResponseSize];
+            for (int i = mMaxResponseSize; i > 0; --i) {
                 try {
-                    mOutputStream.write(mMessage);
-                    Log.e("Foo", "Message: " + new String(mMessage));
-                    byte[] response = new byte[MAX_WRITE_RESPONSE_LENGTH];
-                    mInputStream.read(response);
-                    Log.e("Foo", "Response: " + new String(response));
-                    if (!(new String(response)).equals(WRITE_RESPONSE_OKAY)) {
-                        Log.e("Foo", "Bad response");
-                        throw new IOException("Bad response");
-                    }
-                    if (response[0] == LOCK_STATE_QUERY_BYTE) {
-                        if (mLockListener != null)
-                            mLockListener.isLocked(mDevice, 
-                                    (response[1] == DEVICE_LOCKED_RESPONSE));
-//                        else // sanity check
-//                            assert (response[1] == DEVICE_UNLOCKED_RESPONSE);
-                    } else {
-                        if (mWriteListener != null)
-                            mWriteListener.onWriteResponse(new String(response));
-                    }
-                    break;
+                    response[mMaxResponseSize - i] = (byte) mInStream.read();
                 } catch (IOException e) {
-                    if (attempt < CONNECT_RETRY_TIMES) {
-                        ++attempt;
-                    } else {
-                        String error = 
-                                (attempt >= CONNECT_RETRY_TIMES) ? "Bad Response" : "Failed to write";
-                        if (mWriteListener != null) mWriteListener.onWriteError(error);
+                    Log.e(TAG, "Error reading response", e);
+                    if (mListener != null) {
+                        mListener.onResponse(null, e);
                     }
                 }
             }
+            mTimeoutHandler.removeCallbacks(delayTimer);
+            if (mListener != null) {
+                mListener.onResponse(response, null);
+            }
         }
-    }
-    
-    public interface OnConfigurationListener {
-        /**
-         * Callback to notify a client when configuration is received
-         * @param config
-         *            the configuration received from Bluetooth device, null if failure
-         */
-        public void onConfigurationRead(DeviceConfiguration config);
-    }
-
-    public interface OnWriteFeedbackListener {
-        /**
-         * Callback to notify a client that socket failed to write to Bluetooth device
-         * @param error
-         *            a string description of the failure
-         */
-        public void onWriteError(String error);  
-        
-        /**
-         * Callback to notify a client that writing was successful, and responded with
-         * the given message
-         * @param response  the response from the device written to
-         */
-        public void onWriteResponse(String response);
-    }
-
-    public interface OnLockQueryListener {
-        /**
-         * Callback to notify a client whether a device is unlocked or not
-         * @param status  true is device is locked, false otherwise
-         * @return  true if device is locked, false otherwise
-         */
-        public void isLocked(BluetoothDevice device, boolean status);
     }
 }

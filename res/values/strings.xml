@@ -37,8 +37,8 @@
     <string name="device_manage_lock_status_locked">LOCKED</string>
     <string name="device_manage_lock_status_unlocked">UNLOCKED</string>
     <string name="drive_unlock_hint">Enter password to unlock</string>
-    <string name="drive_manage_no_devices_label">You have no devices!</string>
-    <string name="drive_manage_new_device_hint">Would you like to add one?</string>
+    <string name="drive_manage_no_devices_label">No drives paired or in range!</string>
+    <string name="drive_manage_new_device_hint">Have you checked that your drive is plugged in?</string>
     <string name="shared_preference_key">edu.washington.cs.cellasecure.PREFERENCE_FILE_KEY</string>
 
 </resources>

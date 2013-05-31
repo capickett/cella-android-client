@@ -130,6 +130,7 @@ public class Connection {
         public void run() {
             try {
                 mOutStream.write(mMessage);
+                mOutStream.flush();
             } catch (IOException e) {
                 Log.e(TAG, "Error sending message", e);
                 if (mListener != null) {

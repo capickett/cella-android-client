@@ -93,15 +93,9 @@ public class Connection {
          * A callback to notify the client that the BT device has responded with the following
          *
          * @param message the message sent back from the BT device
+         * @param e on error, the exception raised
          */
-        public void onResponse(byte[] message);
-
-        /**
-         * A callback to notify the client of a failure in sending the last message
-         *
-         * @param e the error generated in the failure
-         */
-        public void onSendFailure(IOException e);
+        public void onResponse(byte[] message, IOException e);
     }
 
     private static class SendMessageTask implements Runnable {
@@ -134,7 +128,7 @@ public class Connection {
             } catch (IOException e) {
                 Log.e(TAG, "Error sending message", e);
                 if (mListener != null) {
-                    mListener.onSendFailure(e);
+                    mListener.onResponse(null, e);
                 }
             }
 
@@ -153,13 +147,13 @@ public class Connection {
                 } catch (IOException e) {
                     Log.e(TAG, "Error reading response", e);
                     if (mListener != null) {
-                        mListener.onSendFailure(e);
+                        mListener.onResponse(null, e);
                     }
                 }
             }
             mTimeoutHandler.removeCallbacks(delayTimer);
             if (mListener != null) {
-                mListener.onResponse(response);
+                mListener.onResponse(response, null);
             }
         }
     }

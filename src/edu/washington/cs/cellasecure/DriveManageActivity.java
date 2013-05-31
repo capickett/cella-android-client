@@ -50,7 +50,6 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
         mDrive = (Drive) args.get(Drive.KEY_BUNDLE_DRIVE);
 
         mDrive.setOnConnectListener(this);
-        mDrive.connect();
     }
 
     @Override
@@ -90,12 +89,26 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
     @Override
     protected void onStop() {
         super.onStop();
-        if (mDrive.isConnected())
+        if (mDrive.isConnected()) {
             mDrive.disconnect();
+        }
     }
 
     @Override
-    public void onLockQueryResult(final boolean status) {
+    protected void onStart() {
+        super.onStart();
+        if (!mDrive.isConnected()) {
+            mDrive.connect();
+        }
+    }
+
+    @Override
+    public void onLockQueryResult(final boolean status, IOException e) {
+        if (e != null) {
+            Log.e(TAG, "Lock query failure", e);
+            finish();
+            return;
+        }
         runOnUiThread(new Runnable() {
             @Override
             public void run() {

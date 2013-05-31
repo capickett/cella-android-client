@@ -73,8 +73,6 @@ public class Drive implements Parcelable {
     private Connection mConnection;
 
     private OnConnectListener mOnConnectListener;
-    private OnWriteFeedbackListener mWriteListener;
-    private OnConfigurationListener mOnConfigurationListener;
     private OnLockQueryResultListener mOnLockQueryResultListener;
 
     public Drive(BluetoothDevice bt) {
@@ -133,20 +131,27 @@ public class Drive implements Parcelable {
     public void queryLockStatus() {
         mConnection.setOnResponseListener(new OnResponseListener() {
             private static final String TAG = "QueryLockStatus";
+
             @Override
-            public void onResponse(byte[] message) {
-                if (message[0] != '?') {
-                    Log.e(TAG, "Invalid response");
-                    return;
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Send failure", e);
+                    if (mOnLockQueryResultListener != null) {
+                        mOnLockQueryResultListener.onLockQueryResult(true, e);
+                    }
                 }
 
-                if (mOnLockQueryResultListener != null)
-                    mOnLockQueryResultListener.onLockQueryResult(message[1] == 'L');
-            }
+                if (message[0] != '?') {
+                    Log.e(TAG, "Invalid response");
+                    if (mOnLockQueryResultListener != null) {
+                        mOnLockQueryResultListener.onLockQueryResult(true,
+                                new IOException("Invalid response: " + message.toString()));
+                    }
+                }
 
-            @Override
-            public void onSendFailure(IOException e) {
-                Log.e(TAG, "Send failure", e);
+                if (mOnLockQueryResultListener != null) {
+                    mOnLockQueryResultListener.onLockQueryResult(message[1] == 'L', null);
+                }
             }
         });
         mConnection.send(LOCK_STATE_QUERY_BYTE, LOCK_STATE_QUERY_RESPONSE_SIZE);
@@ -190,15 +195,17 @@ public class Drive implements Parcelable {
                 Log.e("Foo", "Failed to connect", connectException);
                 try {
                     mSocket.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
-                if (mListener != null)
+                if (mListener != null) {
                     mListener.onConnectFailure(connectException);
+                }
                 return;
             }
             mDrive.mConnection = c;
-            if (mListener != null)
+            if (mListener != null) {
                 mListener.onConnect();
+            }
         }
     }
 
@@ -223,30 +230,14 @@ public class Drive implements Parcelable {
         public void onConfigurationRead(DeviceConfiguration config);
     }
 
-    public interface OnWriteFeedbackListener {
-        /**
-         * Callback to notify a client that socket failed to write to Bluetooth device
-         *
-         * @param error a string description of the failure
-         */
-        public void onWriteError(String error);
-
-        /**
-         * Callback to notify a client that writing was successful, and responded with
-         * the given message
-         *
-         * @param response the response from the device written to
-         */
-        public void onWriteResponse(String response);
-    }
-
     public interface OnLockQueryResultListener {
         /**
          * Callback to notify a client whether a device is unlocked or not
          *
-         * @param status true is device is locked, false otherwise
+         * @param status         true is device is locked, false otherwise
+         * @param queryException if there was an error, this was the exception raised
          */
-        public void onLockQueryResult(boolean status);
+        public void onLockQueryResult(boolean status, IOException queryException);
     }
 
     // END BLUETOOTH //////////////////////////////////////////////////////////
@@ -266,18 +257,23 @@ public class Drive implements Parcelable {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         Drive other = (Drive) obj;
         if (mDevice == null) {
-            if (other.mDevice != null)
+            if (other.mDevice != null) {
                 return false;
-        } else if (!mDevice.equals(other.mDevice))
+            }
+        } else if (!mDevice.equals(other.mDevice)) {
             return false;
+        }
         return true;
     }
 }

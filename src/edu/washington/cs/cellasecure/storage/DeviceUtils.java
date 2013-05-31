@@ -65,7 +65,6 @@ public class DeviceUtils {
         } catch (FileNotFoundException fnfe) {
             // Do nothing
         }
-        Log.e("Foo", "fileToMap: " + addrNameMap.toString());
         return addrNameMap;
     }
 

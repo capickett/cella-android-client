@@ -83,6 +83,11 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         if (mBT != null) {
             mBT.onPause();
         }
+        mDriveScanIndicator.setVisibility(View.GONE);
+        if (mMenuRefresh != null) {
+            mMenuRefresh.setActionView(null);
+        }
+        mDriveListContainer.setVisibility(View.VISIBLE);
     }
 
     /*

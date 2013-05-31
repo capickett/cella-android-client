@@ -225,6 +225,7 @@ public class BluetoothUtility {
         try {
             if (mActivity != null)
                 mActivity.unregisterReceiver(mBroadcastReceiver);
+            mBluetoothAdapter.cancelDiscovery();
         } catch (IllegalArgumentException e) { /* Do nothing */ }
     }
 

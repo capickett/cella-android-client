@@ -78,6 +78,7 @@ public class Drive implements Parcelable {
     private OnLockStateChangeListener mOnLockStateChangeListener;
     private OnFactoryResetListener mOnFactoryResetListener;
     private OnConfigurationListener mOnConfigurationListener;
+    private OnPasswordSetListener mOnPasswordSetListener;
 
     public Drive(BluetoothDevice bt) {
         this(bt.getName(), bt);
@@ -122,6 +123,7 @@ public class Drive implements Parcelable {
     private static final int YES_NO_QUERY_RESPONSE_SIZE = 1;
 
     private static final byte PASSWD_SEND_BYTE = 'p';
+    private static final byte PASSWD_SET_BYTE = 'n';
     private static final int PASSWD_MAX_LENGTH = 32;
 
     private static final int CONFIG_STRING_SIZE = 1;
@@ -455,6 +457,51 @@ public class Drive implements Parcelable {
                 mListener.onConnect();
             }
         }
+    }
+
+    // SET PASSWORD
+
+    public interface OnPasswordSetListener {
+
+        /**
+         * Callback to notify client that the password has been set
+         *
+         * @param e if not null, an error has occured
+         */
+        public void onPasswordSet(IOException e);
+    }
+
+    public void setOnPasswordSetListener(OnPasswordSetListener listener) {
+        mOnPasswordSetListener = listener;
+    }
+
+    public void setPassword(String password) {
+        if (password.length() > PASSWD_MAX_LENGTH) {
+            throw new IllegalArgumentException("Password is too long");
+        }
+        mConnection.setOnResponseListener(new OnResponseListener() {
+            private static final String TAG = "PasswordSetListener";
+
+            @Override
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Password set request failed", e);
+                    if (mOnPasswordSetListener != null) {
+                        mOnPasswordSetListener.onPasswordSet(e);
+                    }
+                }
+
+                if (message[0] != RESPONSE_OKAY_BYTE && mOnPasswordSetListener != null) {
+                    mOnPasswordSetListener.onPasswordSet(new IOException("Password set failed"));
+                } else if (mOnPasswordSetListener != null) {
+                    mOnPasswordSetListener.onPasswordSet(null);
+                }
+            }
+        });
+        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+        message[0] = PASSWD_SET_BYTE;
+        System.arraycopy(password.getBytes(), 0, message, 1, password.length());
+        mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
     // END BLUETOOTH //////////////////////////////////////////////////////////

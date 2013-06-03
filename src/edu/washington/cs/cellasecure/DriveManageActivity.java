@@ -19,20 +19,22 @@ package edu.washington.cs.cellasecure;
 import java.io.IOException;
 
 import android.app.Activity;
-import android.app.Fragment;
-import android.app.FragmentTransaction;
+import android.app.DialogFragment;
+import android.content.Context;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
+import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive.OnConfigurationListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
-import edu.washington.cs.cellasecure.fragments.DriveUnlockFragment;
+import edu.washington.cs.cellasecure.fragments.PasswordInputDialogFragment;
 
-public class DriveManageActivity extends Activity implements Drive.OnConnectListener, 
-                OnConfigurationListener {
+public class DriveManageActivity extends Activity implements 
+        Drive.OnConnectListener, OnConfigurationListener, 
+        PasswordInputDialogFragment.PasswordInputDialogListener, Drive.OnLockStateChangeListener {
 
 
     private static final String TAG = "DriveManageActivity";
@@ -41,6 +43,7 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
     public static final String KEY_BUNDLE_ENCRYPTION_LEVEL = "encryption_level";
 
     private static Drive mDrive;
+    private int mEncryptionLevel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +58,7 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
 
         mDrive.setOnConnectListener(this);
         mDrive.setOnConfigurationListener(this);
+        mDrive.setOnLockStateChangeListener(this);
     }
 
     @Override
@@ -80,6 +84,7 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
 
     @Override
     public void onConnect() {
+        Log.e("Foo", "in onConnect");
         assert mDrive.isConnected();
         mDrive.readConfiguration();
     }
@@ -109,23 +114,17 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
 
     @Override
     public void onConfigurationRead(DeviceConfiguration config, IOException e) {
+        Log.e("Foo", "in onConfigurationRead");
         if (e == null) {
             for (String option : config.listOptions()) {
-                final int encryption_level = Integer.valueOf(config.getOption(option));
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        FragmentTransaction trans = getFragmentManager().beginTransaction();
-                        Fragment f = new DriveUnlockFragment();
-                        Bundle args = new Bundle();
-                        args.putParcelable(Drive.KEY_BUNDLE_DRIVE, mDrive);
-                        args.putInt(KEY_BUNDLE_ENCRYPTION_LEVEL, encryption_level);
-                        f.setArguments(args);
-                        trans.replace(R.id.drive_manage_fragment_container, f);
-                        findViewById(R.id.drive_loading_progress).setVisibility(View.GONE);
-                        trans.commit();
-                    }
-                });
+                mEncryptionLevel = Integer.valueOf(config.getOption(option));
+                Log.e("Foo", "Encryption Level: " + mEncryptionLevel);
+                if (mEncryptionLevel == 0) {
+                    mDrive.unlock("", "");
+                } else {
+                    PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
+                    pidFragment.show(getFragmentManager(), "fragment_password_input");
+                }
             }
         } else {
             Log.e(TAG, "Configuration read failed", e);
@@ -138,5 +137,45 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
     public void onConfigurationWritten(IOException e) {
         if (e != null)
             Log.e(TAG, "Config failed", e);
+    }
+
+    @Override
+    public void onDialogPositiveClick(DialogFragment df, String password) {
+        if (mEncryptionLevel == 1) {
+            mDrive.unlock(password, "");
+        } else {
+            TelephonyManager tManager = 
+                    (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            String uuid = tManager.getDeviceId();
+            mDrive.unlock(password, uuid);
+        }
+    }
+
+    @Override
+    public void onDialogNegativeClick(DialogFragment df) {
+        Log.d(TAG, "User clicked cancel");
+        finish();
+        return;
+    }
+
+    @Override
+    public void onLockStateChanged(final boolean status, IOException lockStateException) {
+        if (lockStateException == null) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    String lockstate;
+                    if (status) {
+                        lockstate = "Drive locked";
+                    } else {
+                        lockstate = "Drive unlocked";
+                    }
+                   Toast.makeText(DriveManageActivity.this, lockstate, Toast.LENGTH_LONG).show();
+                }
+            });
+
+        } else {
+            Log.e(TAG, "Locking failed", lockStateException);
+            // failed to unlock, do something fail-y
+        }
     }
 }

@@ -16,6 +16,10 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.UUID;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -26,10 +30,6 @@ import edu.washington.cs.cellasecure.bluetooth.Connection;
 import edu.washington.cs.cellasecure.bluetooth.Connection.OnResponseListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.UUID;
-
 public class Drive implements Parcelable {
 
     private static final String TAG = "Drive";
@@ -38,7 +38,6 @@ public class Drive implements Parcelable {
 
     public static final String KEY_BUNDLE_DRIVE = "drive";
 
-    @SuppressWarnings("UnusedDeclaration")
     public static final Parcelable.Creator<Drive> CREATOR = new Parcelable.Creator<Drive>() {
         public Drive createFromParcel(Parcel in) {
             return new Drive(in);
@@ -126,6 +125,7 @@ public class Drive implements Parcelable {
     private static final byte PASSWD_SEND_BYTE = 'p';
     private static final byte PASSWD_SET_BYTE = 'n';
     private static final int PASSWD_MAX_LENGTH = 32;
+    private static final int UUID_LENGTH = 16;
 
     private static final int CONFIG_STRING_SIZE = 1;
 
@@ -226,8 +226,9 @@ public class Drive implements Parcelable {
         mOnLockStateChangeListener = listener;
     }
 
-    public void unlock(String password) {
+    public void unlock(String password, String uuid) {
         if (password.length() > PASSWD_MAX_LENGTH) {
+            Log.e(TAG, "Password is too long");
             throw new IllegalArgumentException("Password is too long!");
         }
         mConnection.setOnResponseListener(new OnResponseListener() {
@@ -247,14 +248,17 @@ public class Drive implements Parcelable {
                 if (success && mOnLockStateChangeListener != null) {
                     mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
                 } else if (mOnLockStateChangeListener != null) {
+                    Log.e(TAG, "Bad password during request");
                     mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, new IOException(
                             "Bad password during request"));
                 }
             }
         });
-        byte[] message = new byte[PASSWD_MAX_LENGTH + 1];
+        byte[] message = new byte[PASSWD_MAX_LENGTH + UUID_LENGTH + 1];
         message[0] = PASSWD_SEND_BYTE;
         System.arraycopy(password.getBytes(), 0, message, 1, password.length());
+        System.arraycopy(uuid.getBytes(), 0, message, 1 + PASSWD_MAX_LENGTH, UUID_LENGTH);
+        // TODO: put on uuid
         mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 
@@ -365,7 +369,7 @@ public class Drive implements Parcelable {
                     }
                     return;
                 }
-
+                Log.e(TAG, "Message: " + new String(message));
                 if (message.length == CONFIG_STRING_SIZE + 1 && 
                         message[CONFIG_STRING_SIZE] == RESPONSE_OKAY_BYTE) {
                     byte[] config = Arrays.copyOfRange(message, 0, CONFIG_STRING_SIZE);

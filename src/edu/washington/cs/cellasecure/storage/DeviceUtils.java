@@ -63,7 +63,7 @@ public class DeviceUtils {
                 addrNameMap.put(splitLine[0], splitLine[1]);
             }
         } catch (FileNotFoundException fnfe) {
-            // Do nothing
+            addrNameMap = null;
         }
         return addrNameMap;
     }

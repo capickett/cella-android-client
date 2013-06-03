@@ -43,5 +43,7 @@
     <string name="dialog_password_input">Please enter your password:</string>
     <string name="dialog_password_ok">Submit</string>
     <string name="dialog_password_cancel">Cancel</string>
+    <string name="dialog_hint_username">Username</string>
+    <string name="dialog_hint_password">Password</string>
 
 </resources>

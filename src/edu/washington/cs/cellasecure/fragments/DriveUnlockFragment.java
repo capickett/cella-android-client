@@ -16,24 +16,31 @@
 
 package edu.washington.cs.cellasecure.fragments;
 
+import java.io.IOException;
+
 import android.app.Activity;
+import android.app.DialogFragment;
 import android.app.Fragment;
-import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
+import android.os.Parcelable;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive;
 import edu.washington.cs.cellasecure.DriveManageActivity;
 import edu.washington.cs.cellasecure.R;
+import edu.washington.cs.cellasecure.fragments.PasswordInputDialogFragment.PasswordInputDialogListener;
 
-public class DriveUnlockFragment extends Fragment implements View.OnClickListener {
+public class DriveUnlockFragment extends Fragment implements View.OnClickListener,
+        PasswordInputDialogListener, Drive.OnLockStateChangeListener {
+    private final String TAG = "DriveUnlockFragment";
+    public static final String KEY_BUNDLE_DRIVE_UNLOCK_FRAGMENT = "drive_unlock_fragment";
 
+    private int mEncryptionLevel;
     private Button mLockStatus;
     private View mDriveUnlockView;
     private Drive mDrive;
@@ -69,37 +76,55 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
 
         Bundle args = getArguments();
         mDrive = args.getParcelable(Drive.KEY_BUNDLE_DRIVE);
-        int encryptionLevel = args.getInt(DriveManageActivity.KEY_BUNDLE_ENCRYPTION_LEVEL);
-        if (encryptionLevel == 0) {
-            mDrive.unlock("");
+        mEncryptionLevel = args.getInt(DriveManageActivity.KEY_BUNDLE_ENCRYPTION_LEVEL);
+        if (mEncryptionLevel == 0) {
+            mDrive.unlock("", "");
         } else {
             PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
             pidFragment.show(getFragmentManager(), "fragment_password_input");
         }
 
-//        mLockStatus.setText(locked ? R.string.device_manage_lock_status_locked : R.string
-//                .device_manage_lock_status_unlocked);
+        mLockStatus.setText(R.string.device_manage_lock_status_locked);
     }
 
     @Override
     public void onClick(View v) {
-        Log.e("Foo", "onClick");
         if (v.equals(mLockStatus) || v.equals(mDriveUnlockView)) {
-            Toast.makeText(getActivity(), "TODO", Toast.LENGTH_SHORT);
         }
     }
 
-    public void isLocked(BluetoothDevice device, boolean status) {
-        Activity parent = getActivity();
-        TextView lsi = (TextView) parent.findViewById(R.id.drive_manage_lock_status);
-        if (status) {
-            mLockStatus.setText(R.string.device_manage_lock_status_locked);
-            lsi.setBackgroundResource(android.R.color.holo_red_dark);
-            lsi.setText(R.string.device_manage_lock_status_unlocked);
+    @Override
+    public void onDialogPositiveClick(DialogFragment df, String password) {
+        if (mEncryptionLevel == 1) {
+            mDrive.unlock(password, "");
         } else {
-            mLockStatus.setText(R.string.device_manage_lock_status_unlocked);
-            lsi.setBackgroundResource(android.R.color.holo_green_dark);
-            lsi.setText(R.string.device_manage_lock_status_unlocked);
+            TelephonyManager tManager = 
+                    (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
+            String uuid = tManager.getDeviceId();
+            mDrive.unlock(password, uuid);
+        }
+    }
+
+
+    @Override
+    public void onDialogNegativeClick(DialogFragment df) {
+        Log.d(TAG, "User clicked cancel");
+        getActivity().finish();
+        return;
+    }
+
+
+    @Override
+    public void onLockStateChanged(boolean status, IOException lockStateException) {
+        if (lockStateException != null) {
+          if (status) {
+              mLockStatus.setText(R.string.device_manage_lock_status_locked);
+          } else {
+              mLockStatus.setText(R.string.device_manage_lock_status_unlocked);
+          }
+        } else {
+            Log.e(TAG, "Locking failed", lockStateException);
+            // failed to unlock, do something fail-y
         }
     }
 }

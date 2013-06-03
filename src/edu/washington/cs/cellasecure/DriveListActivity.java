@@ -16,22 +16,34 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.*;
-import android.widget.*;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemLongClickListener;
+import android.widget.BaseAdapter;
+import android.widget.LinearLayout;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
 import edu.washington.cs.cellasecure.storage.DeviceUtils.OnPairedDrivesLoadListener;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class DriveListActivity extends ListActivity implements OnItemClickListener {
 
@@ -47,7 +59,17 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_drive_list);
-        getListView().setOnItemClickListener(this);
+        ListView view = getListView();
+        view.setOnItemClickListener(this);
+        view.setLongClickable(true);
+        view.setOnItemLongClickListener(new OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View v, int pos, long id) {
+                // TODO provide remove functionality
+                return false;
+            }
+        });
+        
         mBT = new BluetoothUtility(this);
         mDriveScanIndicator = (ProgressBar) findViewById(android.R.id.progress);
         mDriveListContainer = (LinearLayout) findViewById(R.id.list_drive_container);
@@ -160,7 +182,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         public int getCount() {
             return mPairedInRangeDrives.size() + mInRangeDrives.size() + mPairedOutOfRangeDrives.size();
         }
-
+        
         @Override
         public Object getItem(int position) {
             int threshold1 = mPairedInRangeDrives.size();

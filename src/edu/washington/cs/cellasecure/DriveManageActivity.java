@@ -16,6 +16,8 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.io.IOException;
+
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
@@ -25,16 +27,18 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import edu.washington.cs.cellasecure.Drive.OnConfigurationListener;
+import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 import edu.washington.cs.cellasecure.fragments.DriveUnlockFragment;
 
-import java.io.IOException;
+public class DriveManageActivity extends Activity implements Drive.OnConnectListener, 
+                OnConfigurationListener {
 
-public class DriveManageActivity extends Activity implements Drive.OnConnectListener,
-        Drive.OnLockQueryResultListener {
 
     private static final String TAG = "DriveManageActivity";
 
     public static final String KEY_BUNDLE_LOCK_STATUS = "locked";
+    public static final String KEY_BUNDLE_ENCRYPTION_LEVEL = "encryption_level";
 
     private static Drive mDrive;
 
@@ -50,6 +54,7 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
         mDrive = (Drive) args.get(Drive.KEY_BUNDLE_DRIVE);
 
         mDrive.setOnConnectListener(this);
+        mDrive.setOnConfigurationListener(this);
     }
 
     @Override
@@ -76,8 +81,7 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
     @Override
     public void onConnect() {
         assert mDrive.isConnected();
-        mDrive.setOnLockQueryResultListener(this);
-        mDrive.queryLockStatus();
+        mDrive.readConfiguration();
     }
 
     @Override
@@ -98,30 +102,41 @@ public class DriveManageActivity extends Activity implements Drive.OnConnectList
     protected void onStart() {
         super.onStart();
         if (!mDrive.isConnected()) {
+            Log.d(TAG, "Begin connect");
             mDrive.connect();
         }
     }
 
     @Override
-    public void onLockQueryResult(final boolean status, IOException e) {
-        if (e != null) {
-            Log.e(TAG, "Lock query failure", e);
+    public void onConfigurationRead(DeviceConfiguration config, IOException e) {
+        if (e == null) {
+            for (String option : config.listOptions()) {
+                final int encryption_level = Integer.valueOf(config.getOption(option));
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        FragmentTransaction trans = getFragmentManager().beginTransaction();
+                        Fragment f = new DriveUnlockFragment();
+                        Bundle args = new Bundle();
+                        args.putParcelable(Drive.KEY_BUNDLE_DRIVE, mDrive);
+                        args.putInt(KEY_BUNDLE_ENCRYPTION_LEVEL, encryption_level);
+                        f.setArguments(args);
+                        trans.replace(R.id.drive_manage_fragment_container, f);
+                        findViewById(R.id.drive_loading_progress).setVisibility(View.GONE);
+                        trans.commit();
+                    }
+                });
+            }
+        } else {
+            Log.e(TAG, "Configuration read failed", e);
             finish();
             return;
         }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                FragmentTransaction trans = getFragmentManager().beginTransaction();
-                Fragment f = new DriveUnlockFragment();
-                Bundle args = new Bundle();
-                args.putParcelable(Drive.KEY_BUNDLE_DRIVE, mDrive);
-                args.putBoolean(KEY_BUNDLE_LOCK_STATUS, status);
-                f.setArguments(args);
-                trans.replace(R.id.drive_manage_fragment_container, f);
-                findViewById(R.id.drive_loading_progress).setVisibility(View.GONE);
-                trans.commit();
-            }
-        });
+    }
+
+    @Override
+    public void onConfigurationWritten(IOException e) {
+        if (e != null)
+            Log.e(TAG, "Config failed", e);
     }
 }

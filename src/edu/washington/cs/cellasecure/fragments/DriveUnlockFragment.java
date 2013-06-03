@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -68,11 +69,16 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
 
         Bundle args = getArguments();
         mDrive = args.getParcelable(Drive.KEY_BUNDLE_DRIVE);
-        boolean locked = args.getBoolean(DriveManageActivity.KEY_BUNDLE_LOCK_STATUS);
+        int encryptionLevel = args.getInt(DriveManageActivity.KEY_BUNDLE_ENCRYPTION_LEVEL);
+        if (encryptionLevel == 0) {
+            mDrive.unlock("");
+        } else {
+            PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
+            pidFragment.show(getFragmentManager(), "fragment_password_input");
+        }
 
-
-        mLockStatus.setText(locked ? R.string.device_manage_lock_status_locked : R.string
-                .device_manage_lock_status_unlocked);
+//        mLockStatus.setText(locked ? R.string.device_manage_lock_status_locked : R.string
+//                .device_manage_lock_status_unlocked);
     }
 
     @Override

@@ -366,9 +366,9 @@ public class Drive implements Parcelable {
                     return;
                 }
 
-                if (message[0] == RESPONSE_OKAY_BYTE) {
-                    byte[] config = new byte[CONFIG_STRING_SIZE];
-                    System.arraycopy(message, 1, config, 0, CONFIG_STRING_SIZE);
+                if (message.length == CONFIG_STRING_SIZE + 1 && 
+                        message[CONFIG_STRING_SIZE] == RESPONSE_OKAY_BYTE) {
+                    byte[] config = Arrays.copyOfRange(message, 0, CONFIG_STRING_SIZE);
                     DeviceConfiguration devConfig = new DeviceConfiguration(config);
                     if (mOnConfigurationListener != null) {
                         mOnConfigurationListener.onConfigurationRead(devConfig, null);

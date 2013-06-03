@@ -245,7 +245,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         public void onDiscovery(BluetoothDevice device) {
             Log.d(TAG, "onDiscovery called");
             Drive drive = new Drive(device);
-            if (drive.getName().startsWith("cella") && drive.getAddress().startsWith("00:06:66")) {
+//            if (drive.getName().startsWith("cella") && drive.getAddress().startsWith("00:06:66")) {
                 if (mPairedOutOfRangeDrives.remove(drive)) {
                     mPairedInRangeDrives.add(drive);
                 } else {
@@ -260,7 +260,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                     }
                 });
                 notifyDataSetChanged();
-            }
+//            }
         }
 
         @Override

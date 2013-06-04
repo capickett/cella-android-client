@@ -14,13 +14,16 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
+import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive;
+import edu.washington.cs.cellasecure.Drive.OnPasswordSetListener;
 import edu.washington.cs.cellasecure.DriveManageActivity;
 import edu.washington.cs.cellasecure.Drive.OnLockStateChangeListener;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 
-public class DriveConfigureFragment extends Fragment implements View.OnClickListener, Drive.OnConfigurationListener {
+public class DriveConfigureFragment extends Fragment implements View.OnClickListener, Drive.OnConfigurationListener, 
+    OnLockStateChangeListener, OnPasswordSetListener {
     private final static String TAG = "DriveConfigureFragment";
     private static String mUUID;
     
@@ -73,14 +76,9 @@ public class DriveConfigureFragment extends Fragment implements View.OnClickList
                 (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
         mUUID = tManager.getDeviceId();
 
-        mDrive.setOnLockStateChangeListener(new OnLockStateChangeListener() {
-            @Override
-            public void onLockStateChanged(boolean status, IOException lockStateException) {
-                if (!status) {
-                    Log.e(TAG, "Locking failed");
-                }
-            }
-        });
+        mDrive.setOnLockStateChangeListener(this);
+        mDrive.setOnConfigurationListener(this);
+        mDrive.setOnPasswordSetListener(this);
     }
     
     @Override
@@ -101,14 +99,13 @@ public class DriveConfigureFragment extends Fragment implements View.OnClickList
             Log.e(TAG, "encryptionLevel: " + mPendingEncryptionLevel);
             DeviceConfiguration config = new DeviceConfiguration();
             config.setOption("encryption_level", "" + mPendingEncryptionLevel);
-
             mDrive.sendConfiguration(config, mUUID);
         } else if (v.equals(mChangePasswordButton)) {
             Log.d(TAG, "Change password button pressed");
-            // query user for password
             String password = mPasswordBox.getText().toString();
             Log.d(TAG, "Password: " + password);
-            mDrive.setPassword(password, mEncryptionLevel, mUUID);
+
+            mDrive.setPassword(password, mUUID);
         }
     }
 
@@ -120,7 +117,44 @@ public class DriveConfigureFragment extends Fragment implements View.OnClickList
     @Override
     public void onConfigurationWritten(IOException e) {
         mEncryptionLevel = mPendingEncryptionLevel;
+        Log.d(TAG, "Beginning Toast");
+        Activity activity = getActivity();
+        if (activity != null) {
+            final String message = (e == null) ? "Configuration set successfully" : "Configuration failed";
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
+                }
+            });
+        }
     }
-    
-    
+
+    @Override
+    public void onLockStateChanged(boolean status, IOException lockStateException) {
+        if (!status) {
+            Log.e(TAG, "Locking failed");
+        } else {
+            Activity activity = getActivity();
+            if (activity != null) activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getActivity(), "Drive locked", Toast.LENGTH_LONG).show();
+                }
+            });
+            getActivity().finish();
+        }
+    }
+
+    @Override
+    public void onPasswordSet(IOException e) {
+            Activity activity = getActivity();
+            final String message = (e == null) ? "Password updated" : "Password failed to be updated";
+            if (activity != null) activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
+                }
+            });
+    }
 }

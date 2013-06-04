@@ -39,14 +39,14 @@ public class DriveManageActivity extends Activity implements
         Drive.OnConnectListener, OnConfigurationListener, 
         PasswordInputDialogFragment.PasswordInputDialogListener, Drive.OnLockStateChangeListener {
 
-
     private static final String TAG = "DriveManageActivity";
-
-    public static final String KEY_BUNDLE_LOCK_STATUS = "locked";
+    
+    public static final String KEY_BUNDLE_LOCK_STATUS      = "locked";
     public static final String KEY_BUNDLE_ENCRYPTION_LEVEL = "encryption_level";
 
     private static Drive mDrive;
     private int mEncryptionLevel;
+    private boolean mLoginStatus = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,7 +87,7 @@ public class DriveManageActivity extends Activity implements
 
     @Override
     public void onConnect() {
-        Log.e("Foo", "in onConnect");
+        Log.d(TAG, "in onConnect");
         assert mDrive.isConnected();
         mDrive.readConfiguration();
     }
@@ -99,11 +99,17 @@ public class DriveManageActivity extends Activity implements
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mDrive.isConnected())
+            mDrive.disconnect();
+    }
+    
+    @Override
     protected void onStop() {
         super.onStop();
-        if (mDrive.isConnected()) {
+        if (mDrive.isConnected() && !mLoginStatus)
             mDrive.disconnect();
-        }
     }
 
     @Override
@@ -117,11 +123,11 @@ public class DriveManageActivity extends Activity implements
 
     @Override
     public void onConfigurationRead(DeviceConfiguration config, IOException e) {
-        Log.e("Foo", "in onConfigurationRead");
+        Log.d(TAG, "in onConfigurationRead");
         if (e == null) {
             for (String option : config.listOptions()) {
                 mEncryptionLevel = Integer.valueOf(config.getOption(option));
-                Log.e("Foo", "Encryption Level: " + mEncryptionLevel);
+                Log.d(TAG, "Encryption Level: " + mEncryptionLevel);
                 if (mEncryptionLevel == 0) {
                     Log.d(TAG, "Unlocking without Password");
                     mDrive.unlock("", "", mEncryptionLevel);
@@ -132,7 +138,8 @@ public class DriveManageActivity extends Activity implements
                             String message = status ? "Locked" : "Unlocked";
                             Log.d(TAG, "Device is " + message);
                             if (!status) {
-                                mDrive.unlock("", "", mEncryptionLevel);
+                                // already unlocked, skip authentication
+                                onLockStateChanged(false, null);
                             } else {
                                 Log.d(TAG, "Begining Password Fragment");
                                 PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
@@ -188,6 +195,7 @@ public class DriveManageActivity extends Activity implements
                     if (status) {
                         Log.e(TAG, "Unlock failed");
                     } else {
+                        mLoginStatus = true;
                         FragmentManager fragman = getFragmentManager();
                         FragmentTransaction trans = fragman.beginTransaction();
                         Bundle args = new Bundle();
@@ -202,7 +210,7 @@ public class DriveManageActivity extends Activity implements
             });
 
         } else {
-            Log.e(TAG, "Locking failed", lockStateException);
+            Log.e(TAG, "Locking/Unlocking failed", lockStateException);
             // failed to unlock, do something fail-y
         }
     }

@@ -169,6 +169,7 @@ public class Connection {
             // }
 
 //            mTimeoutHandler.removeCallbacks(delayTimer);
+            Log.d(TAG, "Response: " + new String(response));
             if (mListener != null) {
                 mListener.onResponse(response, null);
             }

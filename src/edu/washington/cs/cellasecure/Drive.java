@@ -49,7 +49,7 @@ public class Drive implements Parcelable {
     };
 
     private Drive(Parcel in) {
-        mName = in.readString();
+        mName   = in.readString();
         mDevice = in.readParcelable(null);
     }
 
@@ -68,16 +68,16 @@ public class Drive implements Parcelable {
 
     private static final String BT_DEV_DEFAULT_NAME = "Unnamed";
 
-    private String mName;
+    private String          mName;
     private BluetoothDevice mDevice;
-    private Connection mConnection;
+    private Connection      mConnection;
 
-    private OnConnectListener mOnConnectListener;
+    private OnConfigurationListener   mOnConfigurationListener;
+    private OnConnectListener         mOnConnectListener;
+    private OnFactoryResetListener    mOnFactoryResetListener;
     private OnLockQueryResultListener mOnLockQueryResultListener;
     private OnLockStateChangeListener mOnLockStateChangeListener;
-    private OnFactoryResetListener mOnFactoryResetListener;
-    private OnConfigurationListener mOnConfigurationListener;
-    private OnPasswordSetListener mOnPasswordSetListener;
+    private OnPasswordSetListener     mOnPasswordSetListener;
 
     public Drive(BluetoothDevice bt) {
         this(bt.getName(), bt);
@@ -89,7 +89,7 @@ public class Drive implements Parcelable {
     }
 
     public Drive(String name, BluetoothDevice bt) {
-        mName = (name == null || name.isEmpty()) ? BT_DEV_DEFAULT_NAME : name;
+        mName   = (name == null || name.isEmpty()) ? BT_DEV_DEFAULT_NAME : name;
         mDevice = bt;
     }
 
@@ -113,24 +113,23 @@ public class Drive implements Parcelable {
     public static final byte RESPONSE_OKAY_BYTE = 'K';
     public static final byte RESPONSE_BAD_BYTE = '~';
 
+    private static final byte[] CONFIG_REQUEST_BYTES   = {'g'};
+    private static final byte[] FACTORY_RESET_BYTES    = {'r'};
     private static final byte[] LOCK_STATE_QUERY_BYTES = {'?'};
-    private static final byte[] LOCK_REQUEST_BYTES = {'l'};
-    private static final byte[] FACTORY_RESET_BYTES = {'r'}; // FIXME: Decide on factory reset
-    private static final byte[] CONFIG_REQUEST_BYTES = {'g'};
-    private static final byte CONFIG_SEND_BYTE = 'c';
+    private static final byte[] LOCK_REQUEST_BYTES     = {'l'};
+    private static final byte[] MOUNT_REQUEST_BYTES    = {'k'};
+    private static final byte[] UNMOUNT_REQUEST_BYTES  = {'u'};
 
-    private static final byte[] MOUNT_REQUEST_BYTES = {'k'};
-    private static final byte[] UNMOUNT_REQUEST_BYTES = {'u'};
+    private static final byte   CONFIG_SEND_BYTE = 'c';
+    private static final byte   PASSWD_SEND_BYTE = 'p';
+    private static final byte   PASSWD_SET_BYTE = 'n';
 
     private static final int LOCK_STATE_QUERY_RESPONSE_SIZE = 2;
     private static final int YES_NO_QUERY_RESPONSE_SIZE = 1;
 
-    private static final byte PASSWD_SEND_BYTE = 'p';
-    private static final byte PASSWD_SET_BYTE = 'n';
-    private static final int PASSWD_MAX_LENGTH = 32;
-    private static final int UUID_LENGTH = 16;
-
     private static final int CONFIG_STRING_SIZE = 1;
+    private static final int PASSWD_MAX_LENGTH  = 32;
+    private static final int UUID_LENGTH        = 16;
 
     // CONNECTIONS
 
@@ -229,7 +228,7 @@ public class Drive implements Parcelable {
         mOnLockStateChangeListener = listener;
     }
 
-    public void unlock(String password, String uuid, int encryptionLevel) {
+    public void unlock(String password, final String uuid, int encryptionLevel) {
         if (password.length() > PASSWD_MAX_LENGTH) {
             Log.e(TAG, "Password is too long");
             throw new IllegalArgumentException("Password is too long!");
@@ -239,31 +238,44 @@ public class Drive implements Parcelable {
 
             @Override
             public void onResponse(byte[] message, IOException e) {
-                Log.e(TAG, "Entering onResponse for unlock");
-                if (e != null) {
-                    Log.e(TAG, "Unlock request failure", e);
-                    if (mOnLockStateChangeListener != null) {
-                        mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, e);
-                    }
-                    return;
-                }
-
-                boolean success = message[0] == RESPONSE_OKAY_BYTE;
-                if (success && mOnLockStateChangeListener != null) {
-                    mConnection.setOnResponseListener(new OnResponseListener() {
-                        @Override
-                        public void onResponse(byte[] message, IOException e) {
-                            if (e == null && message[0] == 'K')
-                                mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
-                            else
-                                Log.d(TAG, "Failed to mount drive");
+                mConnection.setOnResponseListener(new OnResponseListener() {
+                    @Override
+                    public void onResponse(byte[] message, IOException e) {
+                        Log.e(TAG, "Entering onResponse for unlock");
+                        if (e != null) {
+                            Log.e(TAG, "Unlock request failure", e);
+                            if (mOnLockStateChangeListener != null) {
+                                mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, e);
+                            }
+                            return;
                         }
-                    });
-                    mConnection.send(MOUNT_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
-                } else if (mOnLockStateChangeListener != null) {
-                    Log.e(TAG, "Bad password during request");
-                    mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, new IOException(
-                            "Bad password during request"));
+
+                        boolean success = message[0] == RESPONSE_OKAY_BYTE;
+                        if (success && mOnLockStateChangeListener != null) {
+                            mConnection.setOnResponseListener(new OnResponseListener() {
+                                @Override
+                                public void onResponse(byte[] message, IOException e) {
+                                    if (e == null && message[0] == 'K')
+                                        mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
+                                    else
+                                        Log.d(TAG, "Failed to mount drive");
+                                }
+                            });
+                            mConnection.send(MOUNT_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
+                        } else if (mOnLockStateChangeListener != null) {
+                            Log.e(TAG, "Bad password during request");
+                            mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, new IOException(
+                                    "Bad password during request"));
+                        }
+                    }
+                });
+                if (e == null && message[0] == RESPONSE_OKAY_BYTE) {
+                    byte[] newMessage = new byte[UUID_LENGTH];
+                    System.arraycopy(uuid.getBytes(), 0, newMessage, 0, uuid.length());
+                    Log.d(TAG, "Sending UUID: " + uuid);
+                    mConnection.send(newMessage, YES_NO_QUERY_RESPONSE_SIZE);
+                } else {
+                    Log.e(TAG, "Failed", e);
                 }
             }
         });
@@ -271,12 +283,11 @@ public class Drive implements Parcelable {
         if (encryptionLevel == 0)
             message = new byte[] {PASSWD_SEND_BYTE};
         else {
-            if (encryptionLevel == 1) {
                 message = new byte[1 + PASSWD_MAX_LENGTH];
-            } else {
-                message = new byte[1 + PASSWD_MAX_LENGTH + UUID_LENGTH];
-                System.arraycopy(uuid.getBytes(), 0, message, 1 + PASSWD_MAX_LENGTH, uuid.length());
-            }
+//            } else {
+//                message = new byte[1 + PASSWD_MAX_LENGTH + UUID_LENGTH];
+//                System.arraycopy(uuid.getBytes(), 0, message, 1 + PASSWD_MAX_LENGTH, uuid.length());
+//            }
             message[0] = PASSWD_SEND_BYTE;
             System.arraycopy(password.getBytes(), 0, message, 1, password.length());
         }
@@ -426,51 +437,62 @@ public class Drive implements Parcelable {
                 mConnection.setOnResponseListener(new OnResponseListener() {
                     @Override
                     public void onResponse(byte[] message, IOException e) {
-                        if (e != null) {
-                            Log.e(TAG, "Error requesting config send", e);
-                            if (mOnConfigurationListener != null) {
-                                mOnConfigurationListener.onConfigurationWritten(e);
-                            }
-                            return;
-                        }
-                        if (mOnConfigurationListener != null) {
-                            if (message[0] != RESPONSE_OKAY_BYTE) {
-                                Log.e(TAG, "response Message: " + new String(message));
-                                mOnConfigurationListener.onConfigurationWritten(
-                                        new IOException("Device did not accept config"));
-                            } else {
-                                mConnection.setOnResponseListener(new OnResponseListener() {
-                                    @Override
-                                    public void onResponse(byte[] message, IOException e) {
-                                        if (e != null) {
-                                            Log.e(TAG, "Remount failed");
-                                            if (mOnConfigurationListener != null)
-                                                mOnConfigurationListener.onConfigurationWritten(e);
-                                        } else if (message[0] == RESPONSE_OKAY_BYTE) {
-                                            Log.d(TAG, "Configuration set success!");
-                                            mOnConfigurationListener.onConfigurationWritten(null);
-                                        } else {
-                                            Log.e(TAG, "Device rejected remounting");
-                                        }
+                        mConnection.setOnResponseListener(new OnResponseListener() {
+                            
+                            @Override
+                            public void onResponse(byte[] message, IOException e) {
+                                if (e != null) {
+                                    Log.e(TAG, "Error requesting config send", e);
+                                    if (mOnConfigurationListener != null) {
+                                        mOnConfigurationListener.onConfigurationWritten(e);
                                     }
-                                });
+                                    return;
+                                }
+                                if (mOnConfigurationListener != null) {
+                                    if (message[0] != RESPONSE_OKAY_BYTE) {
+                                        Log.e(TAG, "response Message: " + new String(message));
+                                        mOnConfigurationListener.onConfigurationWritten(
+                                                new IOException("Device did not accept config"));
+                                    } else {
+                                        mConnection.setOnResponseListener(new OnResponseListener() {
+                                            @Override
+                                            public void onResponse(byte[] message, IOException e) {
+                                                if (e != null) {
+                                                    Log.e(TAG, "Remount failed");
+                                                    if (mOnConfigurationListener != null)
+                                                        mOnConfigurationListener.onConfigurationWritten(e);
+                                                } else if (message[0] == RESPONSE_OKAY_BYTE) {
+                                                    Log.d(TAG, "Configuration set success!");
+                                                    mOnConfigurationListener.onConfigurationWritten(null);
+                                                } else {
+                                                    Log.e(TAG, "Device rejected remounting");
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
                                 mConnection.send(MOUNT_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
                             }
+                        });
+                        if (message[0] == RESPONSE_OKAY_BYTE) {
+                            byte[] newMessage = new byte[UUID_LENGTH];
+                            Log.d(TAG, "UUID in setconfig: " + uuid);
+                            System.arraycopy(uuid.getBytes(), 0, newMessage, 0, uuid.length());
+                            mConnection.send(newMessage, YES_NO_QUERY_RESPONSE_SIZE);
+                        } else {
+                            Log.e(TAG, "Config send failed");
                         }
                     }
                 });
                 if (message[0] == RESPONSE_OKAY_BYTE) {
                     byte[] configBytes = configuration.getBytes();
-                    byte[] newMessage;
-                    if (Integer.valueOf(configuration.getOption("encryption_level")) == 2) {
-                        newMessage = new byte[uuid.length() + configBytes.length + 1];
-                        System.arraycopy(uuid.getBytes(), 0, newMessage, 1 + configBytes.length, uuid.length());
-                    } else {
-                        newMessage = new byte[configBytes.length + 1];
-                    }
+                    byte[] newMessage = new byte[1 + configBytes.length];
                     newMessage[0] = CONFIG_SEND_BYTE;
                     System.arraycopy(configBytes, 0, newMessage, 1, configBytes.length);
                     Log.d(TAG, "newMessage: " + new String(newMessage));
+//                    Log.d(TAG, "uuid length: " + uuid.length() + " uuid: " + uuid);
+//                    Log.d(TAG, "configByte length is " + configBytes.length);
+                    Log.d(TAG, "newMessage length is " + newMessage.length);
                     mConnection.send(newMessage, YES_NO_QUERY_RESPONSE_SIZE);
                 } else {
                     Log.e(TAG, "Failed to unmount");
@@ -510,8 +532,7 @@ public class Drive implements Parcelable {
                 Log.e("Foo", "Failed to connect", connectException);
                 try {
                     mSocket.close();
-                } catch (IOException ignored) {
-                }
+                } catch (IOException ignored) { /* pass */ }
                 if (mListener != null) {
                     mListener.onConnectFailure(connectException);
                 }
@@ -536,63 +557,85 @@ public class Drive implements Parcelable {
         public void onPasswordSet(IOException e);
     }
 
-    public void setOnPasswordSetListener(OnPasswordSetListener listener) {
-        mOnPasswordSetListener = listener;
+    public void setOnPasswordSetListener (OnPasswordSetListener psl) {
+        mOnPasswordSetListener = psl;
     }
-
-    public void setPassword(final String password, final int encryptionLevel, final String uuid) {
+    
+    public void setPassword(final String password, final String uuid) {
         if (password.length() > PASSWD_MAX_LENGTH) {
             throw new IllegalArgumentException("Password is too long");
         }
         mConnection.setOnResponseListener(new OnResponseListener() {
-           @Override
-           public void onResponse(byte[] message, IOException e) {
-               if (e != null) {
-                   Log.e(TAG, "Error requesting password change", e);
-                   if (mOnPasswordSetListener != null) {
-                       mOnPasswordSetListener.onPasswordSet(e);
-                   }
-                   return;
-               }
-               mConnection.setOnResponseListener(new OnResponseListener() {
-                   private static final String TAG = "PasswordSetListener";
-
-                   @Override
-                   public void onResponse(byte[] message, IOException e) {
-                       if (e != null) {
-                           Log.e(TAG, "Password set request failed", e);
-                           if (mOnPasswordSetListener != null) {
-                               mOnPasswordSetListener.onPasswordSet(e);
-                           }
-                       }
-
-                       if (message[0] != RESPONSE_OKAY_BYTE && mOnPasswordSetListener != null) {
-                           mOnPasswordSetListener.onPasswordSet(new IOException("Password set failed"));
-                       } else if (mOnPasswordSetListener != null) {
-                           mConnection.setOnResponseListener(new OnResponseListener() {
-                               @Override
-                               public void onResponse(byte[] message, IOException e) {
-                                   if (e == null && message[0] == RESPONSE_OKAY_BYTE)
-                                       mOnPasswordSetListener.onPasswordSet(null);
-                                   else
-                                       Log.e(TAG, "Password set failed");
-                               }
-                           });
-                           mConnection.send(MOUNT_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
-                       }
-                   }
-               });
-               byte[] newMessage;
-               if (encryptionLevel == 2) {
-                   newMessage = new byte[uuid.length() + PASSWD_MAX_LENGTH + 1];
-                   System.arraycopy(uuid.getBytes(), 0, newMessage, PASSWD_MAX_LENGTH + 1, uuid.length());
-               } else {
-                   newMessage = new byte[PASSWD_MAX_LENGTH + 1];
-               }
-               newMessage[0] = PASSWD_SET_BYTE;
-               System.arraycopy(password.getBytes(), 0, newMessage, 1, password.length());
-               mConnection.send(newMessage, YES_NO_QUERY_RESPONSE_SIZE);
-           }
+            @Override 
+            public void onResponse(byte[] message, IOException e) {
+                if (e != null) {
+                    Log.e(TAG, "Error requesting unmount");
+                    if (mOnPasswordSetListener != null)
+                        mOnPasswordSetListener.onPasswordSet(e);
+                    return;
+                }
+                mConnection.setOnResponseListener(new OnResponseListener() {
+                    @Override
+                    public void onResponse(byte[] message, IOException e) {
+                        mConnection.setOnResponseListener(new OnResponseListener() {
+                            @Override
+                            public void onResponse(byte[] message, IOException e) {
+                                if (e != null) {
+                                    Log.e(TAG, "Error requesting password change", e);
+                                    if (mOnPasswordSetListener != null) {
+                                        mOnPasswordSetListener.onPasswordSet(e);
+                                    }
+                                    return;
+                                }
+                                if (mOnPasswordSetListener != null) {
+                                    if (message[0] != RESPONSE_OKAY_BYTE) {
+                                        Log.e(TAG, "response Message: " + new String(message));
+                                        mOnPasswordSetListener.onPasswordSet(
+                                                new IOException("Device did not accept password"));
+                                    } else {
+                                        mConnection.setOnResponseListener(new OnResponseListener() {
+                                            @Override
+                                            public void onResponse(byte[] message, IOException e) {
+                                                if (e != null) {
+                                                    Log.e(TAG, "Remount failed");
+                                                    if (mOnPasswordSetListener != null)
+                                                        mOnPasswordSetListener.onPasswordSet(e);
+                                                } else if (message[0] == RESPONSE_OKAY_BYTE) {
+                                                    Log.d(TAG, "Configuration set success!");
+                                                    mOnPasswordSetListener.onPasswordSet(null);
+                                                } else {
+                                                    Log.e(TAG, "Device rejected remounting");
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+                                mConnection.send(MOUNT_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
+                            }
+                        });
+                        if (message[0] == RESPONSE_OKAY_BYTE) {
+                            byte[] newMessage = new byte[UUID_LENGTH];
+                            Log.d(TAG, "UUID in setpass: " + uuid);
+                            System.arraycopy(uuid.getBytes(), 0, newMessage, 0, uuid.length());
+                            mConnection.send(newMessage, YES_NO_QUERY_RESPONSE_SIZE);
+                        } else {
+                            Log.e(TAG, "Password set failed");
+                        }
+                    }
+                });
+                if (message[0] == RESPONSE_OKAY_BYTE) {
+                    byte[] newMessage = new byte[1 + PASSWD_MAX_LENGTH];
+                    newMessage[0] = PASSWD_SET_BYTE;
+                    System.arraycopy(password.getBytes(), 0, newMessage, 1, password.length());
+                    Log.d(TAG, "newMessage: " + new String(newMessage));
+                    Log.d(TAG, "newMessage length is " + newMessage.length);
+                    mConnection.send(newMessage, YES_NO_QUERY_RESPONSE_SIZE);
+                } else {
+                    Log.e(TAG, "Failed to unmount");
+                    if (mOnPasswordSetListener != null) mOnPasswordSetListener.onPasswordSet(
+                            new IOException("Failed to mount"));
+                }
+            }
         });
         mConnection.send(UNMOUNT_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
     }

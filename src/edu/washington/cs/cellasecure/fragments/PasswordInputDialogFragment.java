@@ -52,9 +52,6 @@ public class PasswordInputDialogFragment extends DialogFragment {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         EditText passwordEditText = (EditText) passwordInputView.findViewById(R.id.passText);
-                        if (passwordEditText == null) {
-                            Log.e(TAG, "PasswordEditText was null, view not found");
-                        }
                         Editable passwordEditable = passwordEditText.getText();
                         String password = (passwordEditable == null) ? "" : passwordEditable.toString(); 
                         mListener.onDialogPositiveClick(PasswordInputDialogFragment.this, password);

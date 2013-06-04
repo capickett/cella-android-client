@@ -20,6 +20,8 @@ import java.io.IOException;
 
 import android.app.Activity;
 import android.app.DialogFragment;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
@@ -30,6 +32,7 @@ import android.view.MenuItem;
 import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive.OnConfigurationListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
+import edu.washington.cs.cellasecure.fragments.DriveConfigureFragment;
 import edu.washington.cs.cellasecure.fragments.PasswordInputDialogFragment;
 
 public class DriveManageActivity extends Activity implements 
@@ -120,8 +123,10 @@ public class DriveManageActivity extends Activity implements
                 mEncryptionLevel = Integer.valueOf(config.getOption(option));
                 Log.e("Foo", "Encryption Level: " + mEncryptionLevel);
                 if (mEncryptionLevel == 0) {
+                    Log.d(TAG, "Unlocking without Password");
                     mDrive.unlock("", "");
                 } else {
+                    Log.d(TAG, "Begining Password Fragment");
                     PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
                     pidFragment.show(getFragmentManager(), "fragment_password_input");
                 }
@@ -142,8 +147,10 @@ public class DriveManageActivity extends Activity implements
     @Override
     public void onDialogPositiveClick(DialogFragment df, String password) {
         if (mEncryptionLevel == 1) {
+            Log.d(TAG, "Unlocking with Password");
             mDrive.unlock(password, "");
         } else {
+            Log.d(TAG, "Unlocking with Password and UUID");
             TelephonyManager tManager = 
                     (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             String uuid = tManager.getDeviceId();
@@ -161,15 +168,22 @@ public class DriveManageActivity extends Activity implements
     @Override
     public void onLockStateChanged(final boolean status, IOException lockStateException) {
         if (lockStateException == null) {
+            Log.d(TAG, "Beginning lock state changed on UI thread");
             runOnUiThread(new Runnable() {
                 public void run() {
-                    String lockstate;
                     if (status) {
-                        lockstate = "Drive locked";
+                        String lockstate = "Drive locked";
+                        Toast.makeText(DriveManageActivity.this, lockstate, Toast.LENGTH_LONG).show();
                     } else {
-                        lockstate = "Drive unlocked";
+                        FragmentManager fragman = getFragmentManager();
+                        FragmentTransaction trans = fragman.beginTransaction();
+                        Bundle args = new Bundle();
+                        args.putParcelable(Drive.KEY_BUNDLE_DRIVE, mDrive);
+                        DriveConfigureFragment dcfrag = new DriveConfigureFragment();
+                        dcfrag.setArguments(args);
+                        trans.replace(R.id.drive_manage_fragment_container, dcfrag);
+                        trans.commit();
                     }
-                   Toast.makeText(DriveManageActivity.this, lockstate, Toast.LENGTH_LONG).show();
                 }
             });
 

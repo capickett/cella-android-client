@@ -236,6 +236,7 @@ public class Drive implements Parcelable {
 
             @Override
             public void onResponse(byte[] message, IOException e) {
+                Log.e(TAG, "Entering onResponse for unlock");
                 if (e != null) {
                     Log.e(TAG, "Unlock request failure", e);
                     if (mOnLockStateChangeListener != null) {
@@ -254,11 +255,21 @@ public class Drive implements Parcelable {
                 }
             }
         });
-        byte[] message = new byte[PASSWD_MAX_LENGTH + UUID_LENGTH + 1];
-        message[0] = PASSWD_SEND_BYTE;
-        System.arraycopy(password.getBytes(), 0, message, 1, password.length());
-        System.arraycopy(uuid.getBytes(), 0, message, 1 + PASSWD_MAX_LENGTH, UUID_LENGTH);
-        // TODO: put on uuid
+        byte[] message;
+        if (password.length() == 0)
+            message = new byte[] {PASSWD_SEND_BYTE};
+        else {
+            if (uuid.length() == 0) {
+                message = new byte[1 + PASSWD_MAX_LENGTH];
+            } else {
+                message = new byte[1 + PASSWD_MAX_LENGTH + UUID_LENGTH];
+                System.arraycopy(uuid.getBytes(), 0, message, 1 + PASSWD_MAX_LENGTH, uuid.length());
+            }
+            message[0] = PASSWD_SEND_BYTE;
+            System.arraycopy(password.getBytes(), 0, message, 1, password.length());
+        }
+        Log.d(TAG, "Sending password");
+        Log.d(TAG, "message: " + new String(message));
         mConnection.send(message, YES_NO_QUERY_RESPONSE_SIZE);
     }
 

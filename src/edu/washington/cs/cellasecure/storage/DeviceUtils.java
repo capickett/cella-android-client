@@ -16,19 +16,20 @@
 
 package edu.washington.cs.cellasecure.storage;
 
-import android.app.Activity;
-import android.content.Context;
-import android.util.Log;
-import edu.washington.cs.cellasecure.Drive;
-
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.Executor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+
+import android.app.Activity;
+import android.content.Context;
+import edu.washington.cs.cellasecure.Drive;
 
 public class DeviceUtils {
     private static final String mFilename = "address_to_name_map.dat";

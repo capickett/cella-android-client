@@ -23,7 +23,6 @@ import android.app.DialogFragment;
 import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -71,8 +70,6 @@ public class DriveUnlockFragment extends Fragment implements View.OnClickListene
         activity.findViewById(R.id.drive_loading_progress).setVisibility(View.GONE);
         mLockStatus = (Button) activity.findViewById(R.id.fragment_drive_unlock_status);
         mLockStatus.setOnClickListener(this);
-        mDriveUnlockView = (View) activity.findViewById(R.id.drive_manage_fragment_container);
-        mDriveUnlockView.setOnClickListener(this);
 
         Bundle args = getArguments();
         mDrive = args.getParcelable(Drive.KEY_BUNDLE_DRIVE);

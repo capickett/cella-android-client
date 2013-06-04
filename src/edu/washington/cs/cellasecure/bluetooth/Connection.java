@@ -16,14 +16,17 @@
 
 package edu.washington.cs.cellasecure.bluetooth;
 
-import android.bluetooth.BluetoothSocket;
-import android.os.Handler;
-import android.util.Log;
-import edu.washington.cs.cellasecure.Drive;
-
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import android.bluetooth.BluetoothSocket;
+import android.util.Log;
+import edu.washington.cs.cellasecure.Drive;
 
 /**
  * Utility for managing and executing operations over a connection to a
@@ -85,7 +88,7 @@ public class Connection {
     }
 
     public void send(byte[] message, int maxResponseSize) {
-        sPool.submit(new SendMessageTask(mInputStream, mOutputStream, message, maxResponseSize,
+        sPool.execute(new SendMessageTask(mInputStream, mOutputStream, message, maxResponseSize,
                                          mOnResponseListener));
     }
 
@@ -103,17 +106,18 @@ public class Connection {
 
         private static final String TAG = "SendMessageTask";
 
-        private static final int MAX_READ_TIME_MILLIS = 5000;
+//        private static final int MAX_READ_TIME_MILLIS = 5000;
 
         private final int mMaxResponseSize;
         private final InputStream mInStream;
         private final OutputStream mOutStream;
         private final byte[] mMessage;
         private final OnResponseListener mListener;
-        private final Handler mTimeoutHandler = new Handler();
+//        private final Handler mTimeoutHandler = new Handler();
 
         public SendMessageTask(InputStream is, OutputStream os, byte[] message,
                                int maxResponseSize, OnResponseListener listener) {
+            Log.d(TAG, "Created send message task");
             mInStream = is;
             mOutStream = os;
             mMessage = message;
@@ -123,6 +127,7 @@ public class Connection {
 
         @Override
         public void run() {
+            Log.d(TAG, "Running send message task");
             try {
                 mOutStream.write(mMessage);
                 mOutStream.flush();
@@ -133,13 +138,13 @@ public class Connection {
                 }
             }
 
-            Runnable delayTimer = new Runnable() {
-                @Override
-                public void run() {
-                    Log.e(TAG, "Read timeout");
-                }
-            };
-            mTimeoutHandler.postDelayed(delayTimer, MAX_READ_TIME_MILLIS);
+//            Runnable delayTimer = new Runnable() {
+//                @Override
+//                public void run() {
+//                    Log.e(TAG, "Read timeout");
+//                }
+//            };
+//            mTimeoutHandler.postDelayed(delayTimer, MAX_READ_TIME_MILLIS);
 
             byte[] response = new byte[mMaxResponseSize];
             for (int i = mMaxResponseSize; i > 0; --i) {
@@ -163,7 +168,7 @@ public class Connection {
             // } catch (IOException ignored) {
             // }
 
-            mTimeoutHandler.removeCallbacks(delayTimer);
+//            mTimeoutHandler.removeCallbacks(delayTimer);
             if (mListener != null) {
                 mListener.onResponse(response, null);
             }

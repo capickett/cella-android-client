@@ -29,6 +29,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive.OnConfigurationListener;
 import edu.washington.cs.cellasecure.Drive.OnLockQueryResultListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
@@ -146,7 +147,7 @@ public class DriveManageActivity extends Activity implements
                                 // already unlocked, skip authentication
                                 onLockStateChanged(false, null);
                             } else {
-                                Log.d(TAG, "Begining Password Fragment");
+                                Log.d(TAG, "Begin Password Fragment");
                                 PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
                                 pidFragment.show(getFragmentManager(), "fragment_password_input");
                             }
@@ -197,6 +198,8 @@ public class DriveManageActivity extends Activity implements
                 public void run() {
                     if (status) {
                         Log.e(TAG, "Unlock failed");
+                        Toast.makeText(DriveManageActivity.this, "Unlock failed", Toast.LENGTH_LONG).show();
+                        finish();
                     } else {
                         mLoginStatus = true;
                         FragmentManager fragman = getFragmentManager();
@@ -211,10 +214,14 @@ public class DriveManageActivity extends Activity implements
                     }
                 }
             });
-
         } else {
             Log.e(TAG, "Locking/Unlocking failed", lockStateException);
-            // failed to unlock, do something fail-y
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(DriveManageActivity.this, "Validation failed", Toast.LENGTH_LONG).show();
+                }
+            });
+            finish();
         }
     }
     

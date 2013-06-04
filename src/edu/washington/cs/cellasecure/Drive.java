@@ -257,15 +257,19 @@ public class Drive implements Parcelable {
                                 public void onResponse(byte[] message, IOException e) {
                                     if (e == null && message[0] == 'K')
                                         mOnLockStateChangeListener.onLockStateChanged(STATUS_UNLOCKED, null);
-                                    else
+                                    else {
                                         Log.d(TAG, "Failed to mount drive");
+                                        if (mOnLockStateChangeListener != null)
+                                            mOnLockStateChangeListener.onLockStateChanged(false, new IOException("Validation failed"));
+                                    }
                                 }
                             });
                             mConnection.send(MOUNT_REQUEST_BYTES, YES_NO_QUERY_RESPONSE_SIZE);
                         } else if (mOnLockStateChangeListener != null) {
                             Log.e(TAG, "Bad password during request");
-                            mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, new IOException(
-                                    "Bad password during request"));
+                            if (mOnLockStateChangeListener != null)
+                                mOnLockStateChangeListener.onLockStateChanged(STATUS_LOCKED, new IOException(
+                                        "Bad password during request"));
                         }
                     }
                 });

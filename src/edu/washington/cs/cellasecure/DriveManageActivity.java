@@ -31,6 +31,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive.OnConfigurationListener;
+import edu.washington.cs.cellasecure.Drive.OnLockQueryResultListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 import edu.washington.cs.cellasecure.fragments.DriveConfigureFragment;
 import edu.washington.cs.cellasecure.fragments.PasswordInputDialogFragment;
@@ -124,11 +125,23 @@ public class DriveManageActivity extends Activity implements
                 Log.e("Foo", "Encryption Level: " + mEncryptionLevel);
                 if (mEncryptionLevel == 0) {
                     Log.d(TAG, "Unlocking without Password");
-                    mDrive.unlock("", "");
+                    mDrive.unlock("", "", mEncryptionLevel);
                 } else {
-                    Log.d(TAG, "Begining Password Fragment");
-                    PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
-                    pidFragment.show(getFragmentManager(), "fragment_password_input");
+                    mDrive.setOnLockQueryResultListener(new OnLockQueryResultListener() {
+                        @Override
+                        public void onLockQueryResult(boolean status, IOException queryException) {
+                            String message = status ? "Locked" : "Unlocked";
+                            Log.d(TAG, "Device is " + message);
+                            if (!status) {
+                                mDrive.unlock("", "", mEncryptionLevel);
+                            } else {
+                                Log.d(TAG, "Begining Password Fragment");
+                                PasswordInputDialogFragment pidFragment = new PasswordInputDialogFragment();
+                                pidFragment.show(getFragmentManager(), "fragment_password_input");
+                            }
+                        }
+                    });
+                    mDrive.queryLockStatus();
                 }
             }
         } else {
@@ -148,13 +161,13 @@ public class DriveManageActivity extends Activity implements
     public void onDialogPositiveClick(DialogFragment df, String password) {
         if (mEncryptionLevel == 1) {
             Log.d(TAG, "Unlocking with Password");
-            mDrive.unlock(password, "");
+            mDrive.unlock(password, "", mEncryptionLevel);
         } else {
             Log.d(TAG, "Unlocking with Password and UUID");
             TelephonyManager tManager = 
                     (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             String uuid = tManager.getDeviceId();
-            mDrive.unlock(password, uuid);
+            mDrive.unlock(password, uuid, mEncryptionLevel);
         }
     }
 

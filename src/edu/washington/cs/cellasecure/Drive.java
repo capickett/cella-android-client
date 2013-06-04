@@ -226,7 +226,7 @@ public class Drive implements Parcelable {
         mOnLockStateChangeListener = listener;
     }
 
-    public void unlock(String password, String uuid) {
+    public void unlock(String password, String uuid, int encryptionLevel) {
         if (password.length() > PASSWD_MAX_LENGTH) {
             Log.e(TAG, "Password is too long");
             throw new IllegalArgumentException("Password is too long!");
@@ -256,10 +256,10 @@ public class Drive implements Parcelable {
             }
         });
         byte[] message;
-        if (password.length() == 0)
+        if (encryptionLevel == 0)
             message = new byte[] {PASSWD_SEND_BYTE};
         else {
-            if (uuid.length() == 0) {
+            if (encryptionLevel == 1) {
                 message = new byte[1 + PASSWD_MAX_LENGTH];
             } else {
                 message = new byte[1 + PASSWD_MAX_LENGTH + UUID_LENGTH];

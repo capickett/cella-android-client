@@ -48,6 +48,12 @@ public class DeviceUtils {
             outputStream.close();
         }
     }
+    
+    public static void addToFile(Context context, Drive drive) throws IOException {
+        Map<String, String> addrNameMap = fileToMap(context);
+        addrNameMap.put(drive.getAddress(), drive.getName());
+        mapToFile(context, addrNameMap);
+    }
 
     // fileToMap
     public static Map<String, String> fileToMap(Context context) {

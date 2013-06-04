@@ -44,6 +44,7 @@ public class DriveManageActivity extends Activity implements
     public static final String KEY_BUNDLE_LOCK_STATUS      = "locked";
     public static final String KEY_BUNDLE_ENCRYPTION_LEVEL = "encryption_level";
 
+    private static String mUUID;
     private static Drive mDrive;
     private int mEncryptionLevel;
     private boolean mLoginStatus = false;
@@ -62,6 +63,10 @@ public class DriveManageActivity extends Activity implements
         mDrive.setOnConnectListener(this);
         mDrive.setOnConfigurationListener(this);
         mDrive.setOnLockStateChangeListener(this);
+        
+        TelephonyManager tManager = 
+                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        mUUID = tManager.getDeviceId();
     }
 
     @Override
@@ -130,7 +135,7 @@ public class DriveManageActivity extends Activity implements
                 Log.d(TAG, "Encryption Level: " + mEncryptionLevel);
                 if (mEncryptionLevel == 0) {
                     Log.d(TAG, "Unlocking without Password");
-                    mDrive.unlock("", "", mEncryptionLevel);
+                    mDrive.unlock("", mUUID, mEncryptionLevel);
                 } else {
                     mDrive.setOnLockQueryResultListener(new OnLockQueryResultListener() {
                         @Override
@@ -169,13 +174,11 @@ public class DriveManageActivity extends Activity implements
     public void onDialogPositiveClick(DialogFragment df, String password) {
         if (mEncryptionLevel == 1) {
             Log.d(TAG, "Unlocking with Password");
-            mDrive.unlock(password, "", mEncryptionLevel);
+            mDrive.unlock(password, mUUID, mEncryptionLevel);
         } else {
             Log.d(TAG, "Unlocking with Password and UUID");
-            TelephonyManager tManager = 
-                    (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-            String uuid = tManager.getDeviceId();
-            mDrive.unlock(password, uuid, mEncryptionLevel);
+
+            mDrive.unlock(password, mUUID, mEncryptionLevel);
         }
     }
 
@@ -213,5 +216,11 @@ public class DriveManageActivity extends Activity implements
             Log.e(TAG, "Locking/Unlocking failed", lockStateException);
             // failed to unlock, do something fail-y
         }
+    }
+    
+    @Override
+    public void onBackPressed() {
+        // using back from within child causes errors and corrupts firmware program state
+        // thus, it is disabled.
     }
 }

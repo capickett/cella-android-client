@@ -35,6 +35,7 @@ import edu.washington.cs.cellasecure.Drive.OnLockQueryResultListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 import edu.washington.cs.cellasecure.fragments.DriveConfigureFragment;
 import edu.washington.cs.cellasecure.fragments.PasswordInputDialogFragment;
+import edu.washington.cs.cellasecure.storage.DeviceUtils;
 
 public class DriveManageActivity extends Activity implements 
         Drive.OnConnectListener, OnConfigurationListener, 
@@ -202,6 +203,9 @@ public class DriveManageActivity extends Activity implements
                         finish();
                     } else {
                         mLoginStatus = true;
+                        try {
+                            DeviceUtils.addToFile(DriveManageActivity.this, mDrive);
+                        } catch (IOException throwaway) { /* pass */ }
                         FragmentManager fragman = getFragmentManager();
                         FragmentTransaction trans = fragman.beginTransaction();
                         Bundle args = new Bundle();

@@ -31,6 +31,8 @@ import java.util.Map;
 public class DeviceConfiguration {
     private static final int STRUCT_SIZE = 1;
     private Map<String, String> mConfigurations;
+    
+    static final String[] configOptions = {"encryption_level"};
 
     /**
      * Constructs new empty configuration
@@ -53,10 +55,14 @@ public class DeviceConfiguration {
         mConfigurations = new LinkedHashMap<String, String>();
         
         ByteBuffer buf = ByteBuffer.wrap(config);
+        int optionIndex = 0;
         
         // BEGIN CONFIGURATION OPTIONS
         byte encryption_level = buf.get();
-        mConfigurations.put("encryption_level", "" + encryption_level);
+        if (Math.abs(Integer.valueOf("" + encryption_level)) > 2)
+            throw new IllegalArgumentException("Encryption level must be 0, 1, or 2");
+        mConfigurations.put(configOptions[optionIndex], "" + encryption_level);
+        optionIndex++;
         
         // additional options here
         
@@ -84,6 +90,15 @@ public class DeviceConfiguration {
         return STRUCT_SIZE;
     }
 
+    /**
+     * Gets the configuration value for the given options
+     * @param fieldName the option whose value to return
+     * @return  the value of the given option if it exists, else null
+     */
+    public String getOption(String fieldName) {
+        return mConfigurations.get(fieldName);
+    }
+    
     /**
      * Adds the following fieldName value pair to the configuration, overwriting
      * previous values if fieldName already exists in the configuration

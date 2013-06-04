@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <Button
+        android:id="@+id/configure_lock_drive"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/lock_drive" />
+
+    <RadioGroup
+        android:id="@+id/encryption_settings_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal" >
+
+        <RadioButton
+            android:id="@+id/encryption_level_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/encryption_level_0" />
+
+        <RadioButton
+            android:id="@+id/encryption_level_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/encryption_level_1" />
+
+        <RadioButton
+            android:id="@+id/encryption_level_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/encryption_level_2" />
+
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/configure_set_configuration"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/config_set" />
+
+    <EditText
+        android:id="@+id/password_box"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:gravity="center_vertical|center_horizontal"
+        android:hint="@string/dialog_password_input"
+        android:inputType="textPassword" >
+
+        <requestFocus />
+    </EditText>
+
+    <Button
+        android:id="@+id/configure_change_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/change_password" />
+
+</LinearLayout>

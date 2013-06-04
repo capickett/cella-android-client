@@ -16,45 +16,59 @@
 
 package edu.washington.cs.cellasecure;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import android.app.ListActivity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.*;
-import android.widget.*;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.BaseAdapter;
+import android.widget.LinearLayout;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import edu.washington.cs.cellasecure.bluetooth.BluetoothUtility;
 import edu.washington.cs.cellasecure.storage.DeviceUtils;
 import edu.washington.cs.cellasecure.storage.DeviceUtils.OnPairedDrivesLoadListener;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class DriveListActivity extends ListActivity implements OnItemClickListener {
 
     public static final String TAG = "DriveListActivity";
 
     private BluetoothUtility mBT;
-    private MenuItem mMenuRefresh;
-    private ProgressBar mDriveScanIndicator;
     private LinearLayout mDriveListContainer;
+    private MenuItem         mMenuRefresh;
+    private ProgressBar mDriveScanIndicator;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_drive_list);
-        getListView().setOnItemClickListener(this);
-        mBT = new BluetoothUtility(this);
+        ListView view = getListView();
+        view.setOnItemClickListener(this);
+
+        DriveListAdapter adapter = new DriveListAdapter();
+        setListAdapter(adapter);
         mDriveScanIndicator = (ProgressBar) findViewById(android.R.id.progress);
         mDriveListContainer = (LinearLayout) findViewById(R.id.list_drive_container);
-        DriveListAdapter adapter = new DriveListAdapter();
+        
+        mBT = new BluetoothUtility(this);
         mBT.setOnDiscoveryFinishedListener(adapter);
         mBT.setOnDiscoveryListener(adapter);
-        setListAdapter(adapter);
         DeviceUtils.loadDrives(this, adapter);
     }
 
@@ -138,9 +152,9 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
     private class DriveListAdapter extends BaseAdapter implements ListAdapter, BluetoothUtility.OnDiscoveryListener,
             BluetoothUtility.OnDiscoveryFinishedListener, OnPairedDrivesLoadListener {
         private static final int VIEW_TYPE_PAIRED_INRANGE = 0;
-        private static final int VIEW_TYPE_INRANGE = 1;
+        private static final int VIEW_TYPE_INRANGE        = 1;
         private static final int VIEW_TYPE_PAIRED_OORANGE = 2;
-        private static final int VIEW_TYPE_COUNT = 3;
+        private static final int VIEW_TYPE_COUNT          = 3;
 
         // load paired devices and add to list
         // then, scan over bluetooth and add pairable devices
@@ -152,8 +166,8 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         // "+" icon is shown instead of lock status
         // Out of range + paired: text is grayed out, in a "disabled" state
 
-        private final Set<Drive> mPairedInRangeDrives = new HashSet<Drive>();
-        private final Set<Drive> mInRangeDrives = new HashSet<Drive>();
+        private final Set<Drive> mInRangeDrives          = new HashSet<Drive>();
+        private final Set<Drive> mPairedInRangeDrives    = new HashSet<Drive>();
         private final Set<Drive> mPairedOutOfRangeDrives = new HashSet<Drive>();
 
         @Override
@@ -245,7 +259,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
         public void onDiscovery(BluetoothDevice device) {
             Log.d(TAG, "onDiscovery called");
             Drive drive = new Drive(device);
-            if (drive.getName().startsWith("cella") && drive.getAddress().startsWith("00:06:66")) {
+//            if (drive.getName().startsWith("cella") && drive.getAddress().startsWith("00:06:66")) {
                 if (mPairedOutOfRangeDrives.remove(drive)) {
                     mPairedInRangeDrives.add(drive);
                 } else {
@@ -260,7 +274,7 @@ public class DriveListActivity extends ListActivity implements OnItemClickListen
                     }
                 });
                 notifyDataSetChanged();
-            }
+//            }
         }
 
         @Override

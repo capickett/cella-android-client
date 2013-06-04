@@ -4,7 +4,9 @@ import java.io.IOException;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.Context;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,12 +15,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import edu.washington.cs.cellasecure.Drive;
+import edu.washington.cs.cellasecure.DriveManageActivity;
 import edu.washington.cs.cellasecure.Drive.OnLockStateChangeListener;
 import edu.washington.cs.cellasecure.R;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
 
-public class DriveConfigureFragment extends Fragment implements View.OnClickListener {
+public class DriveConfigureFragment extends Fragment implements View.OnClickListener, Drive.OnConfigurationListener {
     private final static String TAG = "DriveConfigureFragment";
+    private static String mUUID;
     
     private Drive mDrive;
     private Button mLockDriveButton;
@@ -27,6 +31,10 @@ public class DriveConfigureFragment extends Fragment implements View.OnClickList
     
     private RadioGroup mRadioGroup;
     private EditText mPasswordBox;
+    
+    private int mEncryptionLevel;
+    private int mPendingEncryptionLevel;
+    
     
     /*
      * (non-Javadoc)
@@ -49,6 +57,8 @@ public class DriveConfigureFragment extends Fragment implements View.OnClickList
 
         Bundle args = getArguments();
         mDrive = (Drive) args.getParcelable(Drive.KEY_BUNDLE_DRIVE);
+        mEncryptionLevel = args.getInt(DriveManageActivity.KEY_BUNDLE_ENCRYPTION_LEVEL);
+        mPendingEncryptionLevel = mEncryptionLevel;
         
         mRadioGroup = (RadioGroup) activity.findViewById(R.id.encryption_settings_group);
         mPasswordBox = (EditText) activity.findViewById(R.id.password_box);
@@ -58,6 +68,10 @@ public class DriveConfigureFragment extends Fragment implements View.OnClickList
         mLockDriveButton.setOnClickListener(this);
         mSetConfigButton.setOnClickListener(this);
         mChangePasswordButton.setOnClickListener(this);
+        
+        TelephonyManager tManager = 
+                (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
+        mUUID = tManager.getDeviceId();
 
         mDrive.setOnLockStateChangeListener(new OnLockStateChangeListener() {
             @Override
@@ -78,23 +92,35 @@ public class DriveConfigureFragment extends Fragment implements View.OnClickList
         } else if (v.equals(mSetConfigButton)) {
             Log.d(TAG, "Set config button pressed");
             int encryptionId = mRadioGroup.getCheckedRadioButtonId();
-            int encryptionLevel;
             if (encryptionId == R.id.encryption_level_0)
-                encryptionLevel = 0;
+                mPendingEncryptionLevel = 0;
             else if (encryptionId == R.id.encryption_level_1)
-                encryptionLevel = 1;
+                mPendingEncryptionLevel = 1;
             else
-                encryptionLevel = 2;
-            Log.e(TAG, "encryptionLevel: " + encryptionLevel);
+                mPendingEncryptionLevel = 2;
+            Log.e(TAG, "encryptionLevel: " + mPendingEncryptionLevel);
             DeviceConfiguration config = new DeviceConfiguration();
-            config.setOption("encryption_level", "" + encryptionLevel);
-            //mDrive.sendConfiguration(config);
+            config.setOption("encryption_level", "" + mPendingEncryptionLevel);
+
+            mDrive.sendConfiguration(config, mUUID);
         } else if (v.equals(mChangePasswordButton)) {
             Log.d(TAG, "Change password button pressed");
             // query user for password
             String password = mPasswordBox.getText().toString();
             Log.d(TAG, "Password: " + password);
-//            mDrive.setPassword(password);
+            mDrive.setPassword(password, mEncryptionLevel, mUUID);
         }
     }
+
+    @Override
+    public void onConfigurationRead(DeviceConfiguration config, IOException e) {
+        return;
+    }
+
+    @Override
+    public void onConfigurationWritten(IOException e) {
+        mEncryptionLevel = mPendingEncryptionLevel;
+    }
+    
+    
 }

@@ -29,7 +29,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.Toast;
 import edu.washington.cs.cellasecure.Drive.OnConfigurationListener;
 import edu.washington.cs.cellasecure.Drive.OnLockQueryResultListener;
 import edu.washington.cs.cellasecure.bluetooth.DeviceConfiguration;
@@ -153,8 +152,10 @@ public class DriveManageActivity extends Activity implements
 
     @Override
     public void onConfigurationWritten(IOException e) {
-        if (e != null)
+        if (e != null) {
             Log.e(TAG, "Config failed", e);
+            finish();
+        }
     }
 
     @Override
@@ -185,13 +186,13 @@ public class DriveManageActivity extends Activity implements
             runOnUiThread(new Runnable() {
                 public void run() {
                     if (status) {
-                        String lockstate = "Drive locked";
-                        Toast.makeText(DriveManageActivity.this, lockstate, Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "Unlock failed");
                     } else {
                         FragmentManager fragman = getFragmentManager();
                         FragmentTransaction trans = fragman.beginTransaction();
                         Bundle args = new Bundle();
                         args.putParcelable(Drive.KEY_BUNDLE_DRIVE, mDrive);
+                        args.putInt(KEY_BUNDLE_ENCRYPTION_LEVEL, mEncryptionLevel);
                         DriveConfigureFragment dcfrag = new DriveConfigureFragment();
                         dcfrag.setArguments(args);
                         trans.replace(R.id.drive_manage_fragment_container, dcfrag);

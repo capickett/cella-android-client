@@ -110,8 +110,9 @@ public class Drive implements Parcelable {
     public static final boolean STATUS_LOCKED = true;
     public static final boolean STATUS_UNLOCKED = false;
 
-    public static final byte RESPONSE_OKAY_BYTE = 'K';
-    public static final byte RESPONSE_BAD_BYTE = '~';
+    public static final byte RESPONSE_OKAY_BYTE     = 'K';
+    public static final byte RESPONSE_BAD_BYTE      = '~';
+    public static final byte RESPONSE_GO_AHEAD_BYTE = 'W';
 
     private static final byte[] CONFIG_REQUEST_BYTES   = {'g'};
     private static final byte[] FACTORY_RESET_BYTES    = {'r'};
@@ -250,7 +251,7 @@ public class Drive implements Parcelable {
                             return;
                         }
 
-                        boolean success = message[0] == RESPONSE_OKAY_BYTE;
+                        boolean success = (message[0] == RESPONSE_OKAY_BYTE);
                         if (success && mOnLockStateChangeListener != null) {
                             mConnection.setOnResponseListener(new OnResponseListener() {
                                 @Override
@@ -273,6 +274,10 @@ public class Drive implements Parcelable {
                         }
                     }
                 });
+                if (message[0] == RESPONSE_GO_AHEAD_BYTE) {
+                    if (mOnLockStateChangeListener != null)
+                        mOnLockStateChangeListener.onLockStateChanged(false, null);
+                }
                 if (e == null && message[0] == RESPONSE_OKAY_BYTE) {
                     byte[] newMessage = new byte[UUID_LENGTH];
                     System.arraycopy(uuid.getBytes(), 0, newMessage, 0, uuid.length());
@@ -287,11 +292,7 @@ public class Drive implements Parcelable {
         if (encryptionLevel == 0)
             message = new byte[] {PASSWD_SEND_BYTE};
         else {
-                message = new byte[1 + PASSWD_MAX_LENGTH];
-//            } else {
-//                message = new byte[1 + PASSWD_MAX_LENGTH + UUID_LENGTH];
-//                System.arraycopy(uuid.getBytes(), 0, message, 1 + PASSWD_MAX_LENGTH, uuid.length());
-//            }
+            message = new byte[1 + PASSWD_MAX_LENGTH];
             message[0] = PASSWD_SEND_BYTE;
             System.arraycopy(password.getBytes(), 0, message, 1, password.length());
         }

@@ -65,6 +65,9 @@ public class DriveManageActivity extends Activity implements
         mDrive.setOnConnectListener(this);
         mDrive.setOnConfigurationListener(this);
         mDrive.setOnLockStateChangeListener(this);
+
+        if (mDrive.getName() != null)
+            getActionBar().setTitle(mDrive.getName());
         
         TelephonyManager tManager = 
                 (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
